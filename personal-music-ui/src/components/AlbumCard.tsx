@@ -112,7 +112,7 @@ const AlbumCard = ({ album, priority = false }: { album: AlbumForCard, priority?
             album.artists.map((artist, i) => (
               <React.Fragment key={artist.id}>
                 <Link
-                  href={`/artist/${artist.id}`}
+                  href={`/artist/${encodeURIComponent(artist.name)}`}
                   className="hover:underline hover:text-white transition-colors"
                 >
                   {artist.name}

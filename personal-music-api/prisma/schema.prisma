@@ -22,6 +22,7 @@ model User {
   bio                String?
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt
+  role               String            @default("user")
   avatarPosition     String?           @default("50% 50%")
   backgroundPath     String?
   backgroundPosition String?           @default("50% 50%")
@@ -169,14 +170,16 @@ model UserPlaylistSong {
 }
 
 model Artist {
-  id          Int              @id @default(autoincrement())
-  name        String           @unique
-  avatarUrl   String?
-  headerUrl   String?
-  bio         String?
-  bioImageUrl String?
-  followers   FollowedArtist[]
-  albums      Album[]          @relation("AlbumToArtist")
+  id                 Int              @id @default(autoincrement())
+  name               String           @unique
+  avatarUrl          String?
+  headerUrl          String?
+  bio                String?
+  bioImageUrl        String?
+  avatarPosition     String?          @default("50% 50%")
+  backgroundPosition String?          @default("50% 50%")
+  followers          FollowedArtist[]
+  albums             Album[]          @relation("AlbumToArtist")
 }
 
 model Album {

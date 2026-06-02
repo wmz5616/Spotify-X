@@ -55,10 +55,12 @@ export class AuthService {
                 username: true,
                 displayName: true,
                 avatarPath: true,
+                role: true,
+                avatarPosition: true,
             },
         });
 
-        const accessToken = this.generateToken(user.id, user.email);
+        const accessToken = await this.generateToken(user.id, user.email);
 
         this.logger.log(`用户注册成功: ${user.email}`);
 
@@ -78,6 +80,8 @@ export class AuthService {
                 username: true,
                 displayName: true,
                 avatarPath: true,
+                role: true,
+                avatarPosition: true,
                 passwordHash: true,
             },
         });
@@ -92,7 +96,7 @@ export class AuthService {
             throw new UnauthorizedException('邮箱或密码错误');
         }
 
-        const accessToken = this.generateToken(user.id, user.email);
+        const accessToken = await this.generateToken(user.id, user.email);
 
         this.logger.log(`用户登录成功: ${user.email}`);
 
@@ -113,6 +117,8 @@ export class AuthService {
                 username: true,
                 displayName: true,
                 avatarPath: true,
+                role: true,
+                avatarPosition: true,
             },
         });
     }
@@ -126,6 +132,8 @@ export class AuthService {
                 username: true,
                 displayName: true,
                 avatarPath: true,
+                role: true,
+                avatarPosition: true,
                 bio: true,
                 createdAt: true,
                 settings: true,
@@ -147,8 +155,9 @@ export class AuthService {
         return user;
     }
 
-    private generateToken(userId: number, email: string): string {
-        const payload = { sub: userId, email };
+    private async generateToken(userId: number, email: string): Promise<string> {
+        const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
+        const payload = { sub: userId, email, role: user?.role || 'user' };
         return this.jwtService.sign(payload);
     }
 }

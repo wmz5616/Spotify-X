@@ -2,8 +2,9 @@
 
 import React from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { MapPin, Users, UserPlus, MessageCircle, Share2, MoreHorizontal, Play } from "lucide-react";
+import { MapPin, Users, UserPlus, MessageCircle, Share2, Play, Quote, Settings, Link } from "lucide-react";
 import { getAuthenticatedSrc } from "@/lib/api-client";
 import { User } from "@/lib/prisma-types";
 import { useChatStore } from "@/store/useChatStore";
@@ -32,6 +33,7 @@ export default function ProfileHeader({
 }: ProfileHeaderProps) {
     const { startChatWith } = useChatStore();
     const addToast = useToastStore(state => state.addToast);
+    const router = useRouter();
 
     const getAvatarUrl = () => {
         if (user.avatarPath) {
@@ -160,12 +162,42 @@ export default function ProfileHeader({
                 >
                     <div className="flex items-center gap-3">
                         {isCurrentUser ? (
-                            <button
-                                onClick={onEditProfile}
-                                className="px-5 py-2 md:px-7 md:py-2.5 bg-transparent border border-white/30 text-white font-bold rounded-full hover:scale-105 hover:border-white active:scale-95 transition-all text-sm md:text-base"
-                            >
-                                编辑个人资料
-                            </button>
+                            <div className="flex items-center gap-3">
+                                <button
+                                    onClick={onEditProfile}
+                                    className="px-5 py-2 md:px-7 md:py-2.5 bg-transparent border border-white/30 text-white font-bold rounded-full hover:scale-105 hover:border-white active:scale-95 transition-all text-sm md:text-base"
+                                >
+                                    编辑个人资料
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        const url = window.location.href;
+                                        navigator.clipboard.writeText(url);
+                                        addToast("已复制个人主页链接", "success");
+                                    }}
+                                    className="w-10 h-10 md:w-11 md:h-11 flex items-center justify-center bg-white/5 border border-white/10 text-white/70 rounded-full hover:scale-110 hover:bg-white/10 hover:text-white active:scale-95 transition-all shadow-lg group"
+                                    title="复制链接"
+                                >
+                                    <Link size={18} className="group-hover:scale-110 transition-transform" />
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        // Simple share logic using native share if available
+                                        if (navigator.share) {
+                                            navigator.share({
+                                                title: (user.displayName || user.username) || undefined,
+                                                url: window.location.href
+                                            });
+                                        } else {
+                                            addToast("当前环境暂不支持原生分享", "info");
+                                        }
+                                    }}
+                                    className="w-10 h-10 md:w-11 md:h-11 flex items-center justify-center bg-white/5 border border-white/10 text-white/70 rounded-full hover:scale-110 hover:bg-white/10 hover:text-white active:scale-95 transition-all shadow-lg group"
+                                    title="分享个人资料"
+                                >
+                                    <Share2 size={18} className="group-hover:scale-110 transition-transform" />
+                                </button>
+                            </div>
                         ) : (
                             <div className="flex items-center gap-4">
                                 <button
@@ -184,19 +216,38 @@ export default function ProfileHeader({
                                     <MessageCircle size={18} />
                                     私信
                                 </button>
+                                <button
+                                    onClick={() => {
+                                        const url = window.location.href;
+                                        navigator.clipboard.writeText(url);
+                                        addToast("已复制个人主页链接", "success");
+                                    }}
+                                    className="w-10 h-10 md:w-11 md:h-11 flex items-center justify-center bg-white/5 border border-white/10 text-white/70 rounded-full hover:scale-110 hover:bg-white/10 hover:text-white active:scale-95 transition-all shadow-lg group"
+                                    title="复制链接"
+                                >
+                                    <Link size={18} className="group-hover:scale-110 transition-transform" />
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        if (navigator.share) {
+                                            navigator.share({
+                                                title: (user.displayName || user.username) || undefined,
+                                                url: window.location.href
+                                            });
+                                        } else {
+                                            addToast("当前环境暂不支持原生分享", "info");
+                                        }
+                                    }}
+                                    className="w-10 h-10 md:w-11 md:h-11 flex items-center justify-center bg-white/5 border border-white/10 text-white/70 rounded-full hover:scale-110 hover:bg-white/10 hover:text-white active:scale-95 transition-all shadow-lg group"
+                                    title="分享个人资料"
+                                >
+                                    <Share2 size={18} className="group-hover:scale-110 transition-transform" />
+                                </button>
                             </div>
                         )}
-                        <button className="w-10 h-10 flex items-center justify-center text-white/50 hover:text-white transition group">
-                            <MoreHorizontal size={28} className="transition" />
-                        </button>
                     </div>
 
                     <div className="flex-1 max-w-2xl pl-1 md:pl-0">
-                        {user.bio && (
-                            <p className="text-white/60 text-sm md:text-base font-medium leading-relaxed">
-                                {user.bio}
-                            </p>
-                        )}
                     </div>
                 </motion.div>
             </div>

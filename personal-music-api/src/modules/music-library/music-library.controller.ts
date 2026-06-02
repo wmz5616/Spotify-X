@@ -275,6 +275,25 @@ export class MusicLibraryController {
     return artist;
   }
 
+  @ApiTags('Artists')
+  @ApiOperation({
+    summary: '根据名称获取艺术家详情',
+    description: '根据艺术家名称获取详细信息，包括专辑列表',
+  })
+  @ApiParam({ name: 'name', description: '艺术家名称', example: '周杰伦' })
+  @ApiResponse({ status: 200, description: '成功返回艺术家信息' })
+  @ApiResponse({ status: 404, description: '艺术家不存在' })
+  @ApiSecurity('api-key')
+  @UseGuards(ApiKeyGuard)
+  @Get('artists/name/:name')
+  async findArtistByName(@Param('name') name: string) {
+    const artist = await this.musicLibraryService.findArtistByName(name);
+    if (!artist) {
+      throw new NotFoundException(`Artist with name ${name} not found`);
+    }
+    return artist;
+  }
+
   @ApiTags('Albums')
   @ApiOperation({
     summary: '获取所有专辑',

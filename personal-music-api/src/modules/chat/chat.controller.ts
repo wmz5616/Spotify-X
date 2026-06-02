@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Req, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Body, Param, UseGuards, Req, UseInterceptors, UploadedFile } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -64,5 +64,10 @@ export class ChatController {
     return {
       path: `/chat/${fileName}`,
     };
+  }
+
+  @Delete('conversation/:id/messages')
+  deleteConversationMessages(@Param('id') id: string) {
+    return this.chatService.deleteConversationMessages(parseInt(id));
   }
 }

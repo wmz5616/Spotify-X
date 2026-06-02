@@ -10,6 +10,7 @@ export interface User {
   bio: string | null;
   createdAt: Date;
   updatedAt: Date;
+  role: string;
   avatarPosition: string | null;
   backgroundPath: string | null;
   backgroundPosition: string | null;
@@ -151,6 +152,8 @@ export interface Artist {
   headerUrl: string | null;
   bio: string | null;
   bioImageUrl: string | null;
+  avatarPosition: string | null;
+  backgroundPosition: string | null;
   followers?: FollowedArtist[];
   albums?: Album[];
 }

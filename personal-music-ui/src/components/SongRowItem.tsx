@@ -139,10 +139,26 @@ const SongRowItem = ({
               {cleanSongTitle(song.title, song.album?.artists || song.artist)}
             </span>
             <div className="flex items-center gap-1 text-sm text-neutral-400 group-hover:text-white transition-colors truncate">
-              <span className="truncate">
-                {song.album?.artists?.map((a) => a.name).join(", ") ||
-                  "Unknown Artist"}
-              </span>
+              <div className="flex truncate">
+                {song.album?.artists && song.album.artists.length > 0 ? (
+                  song.album.artists.map((artist, i) => (
+                    <React.Fragment key={artist.id}>
+                      <Link
+                        href={`/artist/${encodeURIComponent(artist.name)}`}
+                        className="hover:underline transition-colors"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {artist.name}
+                      </Link>
+                      {i < (song.album?.artists?.length || 0) - 1 && (
+                        <span className="mr-1">,</span>
+                      )}
+                    </React.Fragment>
+                  ))
+                ) : (
+                  <span>{song.artist || "Unknown Artist"}</span>
+                )}
+              </div>
             </div>
           </div>
         </div>

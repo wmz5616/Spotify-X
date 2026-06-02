@@ -53,8 +53,8 @@ const SongContextMenu = ({ children, song }: SongContextMenuProps) => {
   };
 
   const handleGoToArtist = () => {
-    if (song.album?.artists?.[0]?.id) {
-      router.push(`/artist/${song.album.artists[0].id}`);
+    if (song.album?.artists?.[0]?.name) {
+      router.push(`/artist/${encodeURIComponent(song.album.artists[0].name)}`);
     }
   };
 

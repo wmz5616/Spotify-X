@@ -23,7 +23,9 @@ const TopResultCard = ({ result, type }: TopResultProps) => {
   if (!result) return null;
 
   const isArtist = type === "artist";
-  const href = isArtist ? `/artist/${result.id}` : `/album/${result.id}`;
+  const href = isArtist 
+    ? `/artist/${encodeURIComponent((result as Artist).name)}` 
+    : `/album/${result.id}`;
 
   let imageUrl = "/placeholder.jpg";
 
@@ -137,9 +139,20 @@ const TopResultCard = ({ result, type }: TopResultProps) => {
             {type}
           </span>
           {!isArtist && (result as Album).artists && (
-            <span className="text-sm text-neutral-400 font-medium">
-              {(result as Album).artists.map((a) => a.name).join(", ")}
-            </span>
+            <div className="text-sm text-neutral-400 font-medium flex gap-1 items-center">
+              {(result as Album).artists.map((a, i) => (
+                <React.Fragment key={a.id}>
+                  <Link
+                    href={`/artist/${encodeURIComponent(a.name)}`}
+                    className="hover:underline hover:text-white transition-colors"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {a.name}
+                  </Link>
+                  {i < ((result as Album).artists?.length || 0) - 1 && ", "}
+                </React.Fragment>
+              ))}
+            </div>
           )}
         </div>
       </div>

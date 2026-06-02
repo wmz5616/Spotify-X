@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import type { Song } from "@/types";
 import SongDropdownMenu from "@/components/SongDropdownMenu";
+import Link from "next/link";
 import { apiClient, getAuthenticatedSrc } from "@/lib/api-client";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
@@ -309,7 +310,18 @@ export default function FavoritesPage() {
                                                 <div className="flex-1 min-w-0">
                                                     <p className="text-white font-medium truncate">{song.title}</p>
                                                     <p className="text-neutral-400 text-sm truncate">
-                                                        {song.album?.artists?.map(a => a.name).join(", ") || "未知艺术家"}
+                                                        {song.album?.artists?.map((a, idx) => (
+                                                            <React.Fragment key={a.id}>
+                                                                <Link 
+                                                                    href={`/artist/${encodeURIComponent(a.name)}`}
+                                                                    className="hover:underline hover:text-white transition-colors"
+                                                                    onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                                                                >
+                                                                    {a.name}
+                                                                </Link>
+                                                                {idx < (song.album?.artists?.length || 0) - 1 && ", "}
+                                                            </React.Fragment>
+                                                        )) || "未知艺术家"}
                                                     </p>
                                                 </div>
                                                 {!isBatchMode && (
@@ -391,7 +403,18 @@ export default function FavoritesPage() {
                                             </div>
                                             <p className="text-white font-medium truncate group-hover:text-green-400 transition-colors">{album.title || album.name}</p>
                                             <p className="text-neutral-400 text-sm truncate">
-                                                {album.artists?.map(a => a.name).join(", ") || "未知艺术家"}
+                                                {album.artists?.map((a, idx) => (
+                                                    <React.Fragment key={a.id}>
+                                                        <Link 
+                                                            href={`/artist/${encodeURIComponent(a.name)}`}
+                                                            className="hover:underline hover:text-white transition-colors"
+                                                            onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                                                        >
+                                                            {a.name}
+                                                        </Link>
+                                                        {idx < (album.artists?.length || 0) - 1 && ", "}
+                                                    </React.Fragment>
+                                                )) || "未知艺术家"}
                                             </p>
                                         </motion.div>
                                     ))}
@@ -413,7 +436,7 @@ export default function FavoritesPage() {
                                             initial={{ opacity: 0, y: 20 }}
                                             animate={{ opacity: 1, y: 0 }}
                                             transition={{ delay: i * 0.05 }}
-                                            onClick={() => router.push(`/artist/${artist.id}`)}
+                                            onClick={() => router.push(`/artist/${encodeURIComponent(artist.name || "")}`)}
                                             className="group p-5 bg-neutral-800/40 rounded-xl hover:bg-neutral-700/60 transition-all duration-300 cursor-pointer text-center hover:shadow-xl hover:shadow-black/20 hover:-translate-y-1"
                                         >
                                             <div className="aspect-square relative rounded-full overflow-hidden mb-4 bg-neutral-700 mx-auto w-28 h-28 ring-2 ring-transparent group-hover:ring-green-500/50 transition-all duration-300 shadow-lg">

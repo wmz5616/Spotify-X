@@ -9,6 +9,8 @@ import Image from "next/image";
 import type { Song } from "@/types";
 
 import { apiClient, getAuthenticatedSrc } from "@/lib/api-client";
+import ConfirmModal from "@/components/ui/ConfirmModal";
+import Link from "next/link";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
@@ -30,6 +32,7 @@ export default function HistoryPage() {
     const [history, setHistory] = useState<HistoryItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isHydrated, setIsHydrated] = useState(false);
+    const [showClearConfirm, setShowClearConfirm] = useState(false);
 
     useEffect(() => {
         setIsHydrated(true);
@@ -69,9 +72,11 @@ export default function HistoryPage() {
         }
     }, [currentSong?.id, isHydrated, isAuthenticated, token, fetchHistory, currentSong]);
 
-    const handleClearHistory = async () => {
-        if (!confirm("确定要清空播放历史吗？")) return;
+    const handleClearHistory = () => {
+        setShowClearConfirm(true);
+    };
 
+    const executeClearHistory = async () => {
         try {
             const response = await fetch(`${API_BASE_URL}/api/history`, {
                 method: "DELETE",
@@ -203,9 +208,24 @@ export default function HistoryPage() {
 
                                 <div className="flex-1 min-w-0">
                                     <p className="text-white font-medium truncate">{song.title}</p>
-                                    <p className="text-neutral-400 text-sm truncate">
-                                        {song.album?.artists?.map((a) => a.name).join(", ") || "未知艺术家"}
-                                    </p>
+                                    <div className="text-neutral-400 text-sm truncate flex gap-1">
+                                        {song.album?.artists && song.album.artists.length > 0 ? (
+                                            song.album.artists.map((artist, i) => (
+                                                <React.Fragment key={artist.id}>
+                                                    <Link
+                                                        href={`/artist/${encodeURIComponent(artist.name)}`}
+                                                        className="hover:underline hover:text-white transition-colors"
+                                                        onClick={(e) => e.stopPropagation()}
+                                                    >
+                                                        {artist.name}
+                                                    </Link>
+                                                    {i < (song.album?.artists?.length || 0) - 1 && ", "}
+                                                </React.Fragment>
+                                            ))
+                                        ) : (
+                                            <span>未知艺术家</span>
+                                        )}
+                                    </div>
                                 </div>
 
                                 <span className="text-neutral-500 text-sm hidden sm:block">
@@ -220,6 +240,17 @@ export default function HistoryPage() {
                     </div>
                 )}
             </motion.div>
+
+            <ConfirmModal
+                isOpen={showClearConfirm}
+                onClose={() => setShowClearConfirm(false)}
+                onConfirm={executeClearHistory}
+                title="清空库历史"
+                message="确定要清空所有播放历史吗？这将无法找回。"
+                confirmText="清空"
+                cancelText="取消"
+                type="danger"
+            />
         </div>
     );
 }

@@ -250,10 +250,10 @@ const Sidebar = () => {
                 return (
                   <Link
                     key={`artist-${artist.id}`}
-                    href={`/artist/${artist.id}`}
+                    href={`/artist/${encodeURIComponent(artist.name)}`}
                     className={clsx(
                       "flex items-center gap-x-3 p-2 rounded-md hover:bg-[#1f1f1f] cursor-pointer group transition",
-                      pathname === `/artist/${artist.id}` &&
+                      pathname === `/artist/${encodeURIComponent(artist.name)}` &&
                       "bg-[#232323] text-green-500",
                       isSidebarCollapsed && "justify-center"
                     )}
@@ -276,9 +276,9 @@ const Sidebar = () => {
                         <p
                           className={clsx(
                             "truncate font-medium text-[15px]",
-                            pathname === `/artist/${artist.id}`
-                              ? "text-green-500"
-                              : "text-white"
+                          pathname === `/artist/${encodeURIComponent(artist.name)}`
+                            ? "text-green-500"
+                            : "text-white"
                           )}
                         >
                           {artist.name}

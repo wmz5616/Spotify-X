@@ -222,4 +222,10 @@ export class ChatService {
       isMe: user.id === currentUserId
     };
   }
+
+  async deleteConversationMessages(conversationId: number) {
+    return this.prisma.message.deleteMany({
+      where: { conversationId }
+    });
+  }
 }

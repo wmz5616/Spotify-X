@@ -141,7 +141,7 @@ const PlayerControls = () => {
                 albumData.artists.map((artist: any, i: number) => (
                   <span key={artist.id}>
                     <Link
-                      href={`/artist/${artist.id}`}
+                      href={`/artist/${encodeURIComponent(artist.name)}`}
                       className="hover:text-white hover:underline transition-colors"
                     >
                       {artist.name}

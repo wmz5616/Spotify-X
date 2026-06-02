@@ -13,6 +13,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { NotificationModule } from './modules/notification/notification.module';
 import { SocialModule } from './modules/social/social.module';
 import { ChatModule } from './modules/chat/chat.module';
+import { AdminModule } from './modules/admin/admin.module';
 import {
   WinstonModule,
   utilities as nestWinstonModuleUtilities,
@@ -68,6 +69,7 @@ import { join } from 'path';
     NotificationModule,
     SocialModule,
     ChatModule,
+    AdminModule,
     ScheduleModule.forRoot(),
   ],
   controllers: [AppController],

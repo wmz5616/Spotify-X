@@ -8,6 +8,8 @@ export type Artist = {
   albums?: Album[];
   bio?: string | null;
   bioImageUrl?: string | null;
+  avatarPosition?: string | null;
+  backgroundPosition?: string | null;
 };
 
 export type Album = {

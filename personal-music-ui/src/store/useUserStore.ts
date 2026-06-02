@@ -15,6 +15,7 @@ interface User {
     backgroundPath?: string | null;
     backgroundPosition?: string | null;
     bio?: string | null;
+    role: string | null;
     createdAt?: string;
     _count?: {
         favoriteSongs: number;

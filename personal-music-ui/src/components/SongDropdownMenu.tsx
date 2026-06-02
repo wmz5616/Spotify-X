@@ -145,7 +145,7 @@ export default function SongDropdownMenu({ song, onRemoveFavorite }: SongDropdow
 
                             {song.album?.artists && song.album.artists.length > 0 && (
                                 <Link
-                                    href={`/artist/${song.album.artists[0].id}`}
+                                    href={`/artist/${encodeURIComponent(song.album.artists[0].name)}`}
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         setIsOpen(false);

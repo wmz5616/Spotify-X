@@ -7,6 +7,7 @@ import { Play, Pause } from "lucide-react";
 import Image from "next/image";
 import React from "react";
 import { getAuthenticatedSrc } from "@/lib/api-client";
+import Link from "next/link";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
@@ -85,8 +86,27 @@ const PopularSongsList = ({ songs }: { songs: Song[] }) => {
               >
                 {song.title}
               </div>
-              <div className="text-xs text-neutral-400 truncate">
-                {song.album?.title}
+              <div className="text-xs text-neutral-400 truncate flex gap-1">
+                {song.album?.artists && song.album.artists.length > 0 ? (
+                  song.album.artists.map((artist, i) => (
+                    <React.Fragment key={artist.id}>
+                      <Link
+                        href={`/artist/${encodeURIComponent(artist.name)}`}
+                        className="hover:underline hover:text-white transition-colors"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {artist.name}
+                      </Link>
+                      {i < (song.album?.artists?.length || 0) - 1 && ", "}
+                    </React.Fragment>
+                  ))
+                ) : (
+                  <span>{song.album?.title}</span>
+                )}
+                {song.album?.artists && song.album.artists.length > 0 && (
+                  <span className="mx-1 opacity-50">•</span>
+                )}
+                <span className="opacity-70">{song.album?.title}</span>
               </div>
             </div>
 

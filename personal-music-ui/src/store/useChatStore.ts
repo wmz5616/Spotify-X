@@ -49,6 +49,7 @@ interface ChatState {
     startChatWith: (userId: number) => void;
     addMessage: (message: Message) => void;
     markAsRead: (conversationId: number) => Promise<void>;
+    clearHistory: (conversationId: number) => Promise<void>;
 }
 
 const SOCKET_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
@@ -246,6 +247,19 @@ export const useChatStore = create<ChatState>((set, get) => ({
             });
         } catch (error) {
             console.error("Failed to mark as read", error);
+        }
+    },
+
+    clearHistory: async (conversationId: number) => {
+        try {
+            await apiClient(`/api/chat/conversation/${conversationId}/messages`, { method: "DELETE" });
+            set(state => ({
+                conversations: state.conversations.map(c => 
+                    c.id === conversationId ? { ...c, messages: [] } : c
+                )
+            }));
+        } catch (error) {
+            console.error("Failed to clear history", error);
         }
     }
 }));

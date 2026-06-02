@@ -8,6 +8,7 @@ import { usePlayerStore } from "@/store/usePlayerStore";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import type { Song } from "@/types";
+import ConfirmModal from "@/components/ui/ConfirmModal";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
@@ -36,6 +37,7 @@ export default function PlaylistsPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newPlaylistName, setNewPlaylistName] = useState("");
   const [editingPlaylist, setEditingPlaylist] = useState<UserPlaylist | null>(null);
+  const [playlistToDelete, setPlaylistToDelete] = useState<number | null>(null);
   const [isHydrated, setIsHydrated] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -92,9 +94,11 @@ export default function PlaylistsPage() {
     }
   };
 
-  const handleDeletePlaylist = async (playlistId: number) => {
-    if (!confirm("确定要删除这个歌单吗？")) return;
+  const handleDeletePlaylist = (playlistId: number) => {
+    setPlaylistToDelete(playlistId);
+  };
 
+  const executeDeletePlaylist = async (playlistId: number) => {
     try {
       const response = await fetch(`${API_BASE_URL}/api/user-playlists/${playlistId}`, {
         method: "DELETE",
@@ -318,6 +322,17 @@ export default function PlaylistsPage() {
           </motion.div>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={playlistToDelete !== null}
+        onClose={() => setPlaylistToDelete(null)}
+        onConfirm={() => playlistToDelete && executeDeletePlaylist(playlistToDelete)}
+        title="确认删除歌单"
+        message="确定要删除这个歌单吗？此操作不可撤销。"
+        confirmText="删除"
+        cancelText="取消"
+        type="danger"
+      />
     </div>
   );
 }

@@ -636,6 +636,23 @@ export class MusicLibraryService {
     });
   }
 
+  async findArtistByName(name: string) {
+    return this.prisma.artist.findUnique({
+      where: { name },
+      include: {
+        albums: {
+          include: {
+            artists: true,
+            songs: {
+              orderBy: { trackNumber: 'asc' },
+              select: { id: true, title: true, duration: true },
+            },
+          },
+        },
+      },
+    });
+  }
+
   async findAllAlbums() {
     return this.prisma.album.findMany({
       select: {

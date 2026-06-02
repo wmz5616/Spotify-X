@@ -43,7 +43,7 @@ const ArtistPageSkeleton = () => (
 const ArtistDetailPage = () => {
   const params = useParams();
   const router = useRouter();
-  const id = params.id as string;
+  const name = decodeURIComponent(params.name as string);
   const [artist, setArtist] = useState<ArtistDetails | null>(null);
   const [scrollY, setScrollY] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -56,18 +56,18 @@ const ArtistDetailPage = () => {
   const { addToast } = useToastStore();
 
   useEffect(() => {
-    if (id && followedArtistIds) {
-      setIsFollowing(followedArtistIds.has(Number(id)));
+    if (artist && followedArtistIds) {
+      setIsFollowing(followedArtistIds.has(artist.id));
     }
-  }, [id, followedArtistIds]);
+  }, [artist?.id, followedArtistIds]);
 
 
 
   const handleToggleFollow = async () => {
-    if (!id) return;
+    if (!artist?.id) return;
     setFollowLoading(true);
     try {
-      await toggleFollowArtist(Number(id));
+      await toggleFollowArtist(artist.id);
       setIsFollowing(!isFollowing);
       addToast(isFollowing ? "已取消关注" : "已关注艺术家", <Check size={16} />);
     } catch {
@@ -90,12 +90,12 @@ const ArtistDetailPage = () => {
   }, []);
 
   useEffect(() => {
-    if (!id) return;
+    if (!name) return;
     const getArtistDetails = async () => {
       try {
         setLoading(true);
         setError(null);
-        const data = await apiClient<ArtistDetails>(`/api/artists/${id}`);
+        const data = await apiClient<ArtistDetails>(`/api/artists/name/${encodeURIComponent(name)}`);
         setArtist(data);
       } catch (err) {
         console.error("Failed to fetch artist details:", err);
@@ -105,7 +105,7 @@ const ArtistDetailPage = () => {
       }
     };
     getArtistDetails();
-  }, [id]);
+  }, [name]);
 
   if (loading) {
     return <ArtistPageSkeleton />;
@@ -191,6 +191,7 @@ const ArtistDetailPage = () => {
             unoptimized={headerImageUrl.startsWith(API_BASE_URL)}
             style={{
               transform: imageTransform,
+              objectPosition: artist.backgroundPosition || "50% 50%",
               willChange: "transform",
             }}
           />
@@ -213,8 +214,9 @@ const ArtistDetailPage = () => {
                 alt={artist.name}
                 fill
                 className="object-cover"
+                style={{ objectPosition: artist.avatarPosition || "50% 50%" }}
                 unoptimized={avatarUrl.startsWith(API_BASE_URL)}
-              />
+            />
             </div>
           )}
 
@@ -228,7 +230,7 @@ const ArtistDetailPage = () => {
                   <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
                 </svg>
               </div>
-              Verified Artist
+              认证艺术家
             </span>
             <h1 className="text-5xl md:text-7xl lg:text-8xl font-black tracking-tighter shadow-black drop-shadow-lg">
               {artist.name}
@@ -274,7 +276,7 @@ const ArtistDetailPage = () => {
         </div>
 
         <section className="mb-12">
-          <h2 className="text-2xl font-bold mb-6">Popular</h2>
+          <h2 className="text-2xl font-bold mb-6">流行</h2>
           <PopularSongsList songs={popularSongs} />
         </section>
 
@@ -287,7 +289,7 @@ const ArtistDetailPage = () => {
 
         {studioAlbums.length > 0 && (
           <section className="mb-12">
-            <h2 className="text-2xl font-bold mb-6">Albums</h2>
+            <h2 className="text-2xl font-bold mb-6">专辑</h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
               {studioAlbums.map((album) => (
                 <AlbumCard

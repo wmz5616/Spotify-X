@@ -17,7 +17,8 @@ import {
     Music,
     Smile,
     Music2,
-    Play
+    Play,
+    Trash2
 } from "lucide-react";
 import Image from "next/image";
 import { useChatStore } from "@/store/useChatStore";
@@ -30,6 +31,7 @@ import { useRouter } from "next/navigation";
 import { formatDistanceToNow, differenceInMinutes, differenceInHours, differenceInDays } from "date-fns";
 import { zhCN } from "date-fns/locale";
 import clsx from "clsx";
+import ConfirmModal from "@/components/ui/ConfirmModal";
 
 const formatOnlineStatus = (updatedAtStr: string | undefined) => {
     if (!updatedAtStr) return { text: "离线", isOnline: false };
@@ -302,6 +304,7 @@ const ChatInput = ({
 
 export default function ChatModal({ isOpen, onClose }: ChatModalProps) {
     const [activeTab, setActiveTab] = useState<"chats" | "notifications">("chats");
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const messageEndRef = useRef<HTMLDivElement>(null);
     const router = useRouter();
 
@@ -312,6 +315,7 @@ export default function ChatModal({ isOpen, onClose }: ChatModalProps) {
         fetchConversations,
         sendMessage,
         initSocket,
+        clearHistory,
         pendingRecipientUser,
         pendingRecipientId
     } = useChatStore();
@@ -417,6 +421,14 @@ export default function ChatModal({ isOpen, onClose }: ChatModalProps) {
         if (!targetUserId) return;
 
         await sendMessage(targetUserId, `分享歌曲: ${song.title}`, user.id, "song", undefined, song.id);
+    };
+    
+    const handleDeleteChat = async () => {
+        if (activeConversationId) {
+            await clearHistory(activeConversationId);
+            setShowDeleteConfirm(false);
+            addToast("聊天记录已清除");
+        }
     };
 
     if (!isOpen) return null;
@@ -645,6 +657,18 @@ export default function ChatModal({ isOpen, onClose }: ChatModalProps) {
                                             </div>
                                         </div>
                                     </div>
+                                    
+                                    {activeConversation && (
+                                        <div className="flex items-center gap-2">
+                                            <button 
+                                                onClick={() => setShowDeleteConfirm(true)}
+                                                className="p-2 hover:bg-neutral-800 rounded-full transition-colors group text-neutral-400 hover:text-red-500"
+                                                title="清除聊天记录"
+                                            >
+                                                <Trash2 size={20} />
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Messages */}
@@ -775,6 +799,16 @@ export default function ChatModal({ isOpen, onClose }: ChatModalProps) {
                         )}
                     </div>
                 </motion.div>
+                
+                <ConfirmModal
+                    isOpen={showDeleteConfirm}
+                    onClose={() => setShowDeleteConfirm(false)}
+                    onConfirm={handleDeleteChat}
+                    title="确定要清除聊天记录吗？"
+                    message="此操作将从服务器永久删除此会话的所有消息，且无法撤销。"
+                    confirmText="确 定"
+                    cancelText="取 消"
+                />
             </div>
         </AnimatePresence>
     );

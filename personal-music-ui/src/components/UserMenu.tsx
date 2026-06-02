@@ -10,6 +10,7 @@ import {
     Clock,
     ListMusic,
     ChevronRight,
+    ShieldCheck
 } from "lucide-react";
 import { useUserStore } from "@/store/useUserStore";
 import { useFavoritesStore } from "@/store/useFavoritesStore";
@@ -208,6 +209,18 @@ export default function UserMenu() {
                                             <span>我的歌单</span>
                                             <ChevronRight size={16} className="ml-auto text-neutral-500" />
                                         </Link>
+
+                                        {user?.role === 'admin' && (
+                                            <Link
+                                                href="/admin"
+                                                onClick={() => setIsOpen(false)}
+                                                className="flex items-center gap-3 px-4 py-2.5 text-green-500 hover:bg-green-500/10 transition font-black"
+                                            >
+                                                <ShieldCheck size={18} />
+                                                <span>管理后台</span>
+                                                <ChevronRight size={16} className="ml-auto text-green-500/50" />
+                                            </Link>
+                                        )}
                                     </div>
 
                                     <div className="border-t border-neutral-700 py-2">

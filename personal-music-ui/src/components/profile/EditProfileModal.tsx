@@ -19,7 +19,6 @@ interface EditProfileModalProps {
 
 export default function EditProfileModal({ user, isOpen, onClose, onSave, onRefresh }: EditProfileModalProps) {
     const [displayName, setDisplayName] = useState(user.displayName || "");
-    const [bio, setBio] = useState(user.bio || "");
     const [ipLocation, setIpLocation] = useState(user.ipLocation || "");
     const [avatarPosition, setAvatarPosition] = useState(user.avatarPosition || "50% 50%");
     const [backgroundPosition, setBackgroundPosition] = useState(user.backgroundPosition || "50% 50%");
@@ -48,7 +47,6 @@ export default function EditProfileModal({ user, isOpen, onClose, onSave, onRefr
     useEffect(() => {
         if (isOpen) {
             setDisplayName(user.displayName || "");
-            setBio(user.bio || "");
             setIpLocation(user.ipLocation || "");
             setAvatarPosition(user.avatarPosition || "50% 50%");
             setBackgroundPosition(user.backgroundPosition || "50% 50%");
@@ -81,11 +79,9 @@ export default function EditProfileModal({ user, isOpen, onClose, onSave, onRefr
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSubmitting(true);
-        const cleanBio = bio.replace(/^["'“”'"]|["'“”'"]$/g, "");
         try {
             await onSave({
                 displayName,
-                bio: cleanBio,
                 ipLocation,
                 avatarPosition,
                 backgroundPosition
@@ -414,18 +410,6 @@ export default function EditProfileModal({ user, isOpen, onClose, onSave, onRefr
                                             </AnimatePresence>
                                         </div>
                                     </div>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="block text-xs font-bold text-neutral-500 uppercase tracking-widest ml-1">个人简介</label>
-                                    <textarea
-                                        value={bio}
-                                        onChange={(e) => setBio(e.target.value)}
-                                        placeholder="介绍一下你自己..."
-                                        rows={4}
-                                        className="w-full bg-[#282828] border border-neutral-800 rounded-lg p-4 text-white placeholder:text-neutral-600 focus:ring-2 focus:ring-green-500/50 focus:border-green-500 outline-none transition resize-none leading-relaxed"
-                                    />
-                                    <p className="text-[10px] text-neutral-600 text-right uppercase font-bold tracking-tighter">Bio info</p>
                                 </div>
                             </div>
 

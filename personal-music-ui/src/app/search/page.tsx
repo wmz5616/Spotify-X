@@ -10,6 +10,7 @@ import type { Album, Artist, Song, Playlist } from "@/types";
 import TopResultCard from "@/components/TopResultCard";
 import SongRowItem from "@/components/SongRowItem";
 import AlbumCard from "@/components/AlbumCard";
+import Link from "next/link";
 import { FadeInContainer, FadeInItem } from "@/components/FadeInStagger";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
@@ -179,8 +180,8 @@ const SearchPage = () => {
                       const imageUrl = getImageUrl(artist.avatarUrl);
 
                       return (
-                        <a
-                          href={`/artist/${artist.id}`}
+                        <Link
+                          href={`/artist/${encodeURIComponent(artist.name)}`}
                           key={artist.id}
                           className="group p-4 bg-[#181818] hover:bg-[#282828] rounded-md transition-colors flex flex-col items-center text-center gap-4"
                         >
@@ -199,7 +200,7 @@ const SearchPage = () => {
                             </p>
                             <p className="text-sm text-neutral-400">Artist</p>
                           </div>
-                        </a>
+                        </Link>
                       );
                     })}
                 </div>

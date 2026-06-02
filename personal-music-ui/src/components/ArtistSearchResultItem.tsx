@@ -21,7 +21,7 @@ const ArtistSearchResultItem: React.FC<ArtistSearchResultItemProps> = ({
 
   return (
     <Link
-      href={`/artist/${artist.id}`}
+      href={`/artist/${encodeURIComponent(artist.name)}`}
       className="group relative flex flex-col items-center gap-4 p-4 rounded-md bg-neutral-900/40 hover:bg-neutral-800 transition overflow-hidden"
     >
       <div className="relative w-32 h-32 rounded-full shadow-lg overflow-hidden bg-neutral-800 group-hover:scale-105 transition-transform duration-300">
