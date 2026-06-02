@@ -36,3 +36,6 @@ public/cache/
 
 # Personal Music API 的文件 (忽略 public 下的文件)
 personal-music-api/public/
+
+# AI Agent 自动生成的技能和配置文件
+.agents/
