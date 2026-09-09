@@ -7,8 +7,6 @@ import Image from "next/image";
 import { usePlayerStore } from "@/store/usePlayerStore";
 import { getAuthenticatedSrc } from "@/lib/api-client";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-
 interface QueuePanelProps {
     isOpen: boolean;
     onClose: () => void;

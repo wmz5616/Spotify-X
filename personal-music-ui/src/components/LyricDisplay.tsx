@@ -47,10 +47,16 @@ const LyricDisplay = () => {
 
     if (!currentSong.lyrics) {
       setIsLoading(true);
-      apiClient<Song>(`/api/songs/${currentSong.id}`)
+      apiClient<{ lyrics?: string }>(`/api/songs/${currentSong.id}/lyrics`)
         .then((data) => {
           if (data && data.lyrics) {
             setFetchedLyrics(data.lyrics);
+            const state = usePlayerStore.getState();
+            if (state.currentSong && state.currentSong.id === currentSong.id) {
+              usePlayerStore.setState({
+                currentSong: { ...state.currentSong, lyrics: data.lyrics },
+              });
+            }
           }
         })
         .catch((err) => {

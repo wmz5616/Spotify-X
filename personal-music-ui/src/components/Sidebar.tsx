@@ -17,6 +17,7 @@ import { clsx } from "clsx";
 import type { Playlist, Artist } from "@/types";
 import { usePlayerStore } from "@/store/usePlayerStore";
 import { useSidebarStore } from "@/store/useSidebarStore";
+import { useUserStore } from "@/store/useUserStore";
 import { apiClient, getAuthenticatedSrc } from "@/lib/api-client";
 import { useToastStore } from "@/store/useToastStore";
 import UserQuickLinks from "./UserQuickLinks";
@@ -46,6 +47,7 @@ const LibrarySkeleton = ({ collapsed }: { collapsed: boolean }) => (
 const Sidebar = () => {
   const pathname = usePathname();
   const { isCollapsed: isSidebarCollapsed, toggle: toggleSidebar } = useSidebarStore();
+  const { isAuthenticated } = useUserStore();
   const { addToast } = useToastStore();
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [artists, setArtists] = useState<Artist[]>([]);
@@ -62,7 +64,7 @@ const Sidebar = () => {
     try {
       setLoading(true);
       const [playlistsData, artistsData] = await Promise.all([
-        apiClient<Playlist[]>("/api/playlists"),
+        isAuthenticated ? apiClient<Playlist[]>("/api/user-playlists") : Promise.resolve([]),
         apiClient<Artist[]>("/api/artists"),
       ]);
 
@@ -79,7 +81,7 @@ const Sidebar = () => {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [isAuthenticated]);
 
   const routes = [
     {

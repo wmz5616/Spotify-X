@@ -20,6 +20,7 @@ import LyricDisplay from "./LyricDisplay";
 import Image from "next/image";
 import Link from "next/link";
 import { getAuthenticatedSrc } from "@/lib/api-client";
+import { formatDuration } from "@/lib/utils";
 import { Song } from "@/types";
 import LikeButton from "./LikeButton";
 import { useFavoritesStore } from "@/store/useFavoritesStore";
@@ -154,12 +155,6 @@ const FullScreenPlayer = () => {
   };
 
   const artistName = getArtistName();
-
-  const formatTime = (time: number) => {
-    const minutes = Math.floor(time / 60);
-    const seconds = Math.floor(time % 60);
-    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
-  };
 
   const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newVal = Number(e.target.value);
@@ -574,8 +569,8 @@ const FullScreenPlayer = () => {
                   </div>
 
                   <div className="flex justify-between text-xs font-medium text-neutral-300 px-0.5">
-                    <span>{formatTime(currentTime)}</span>
-                    <span>{formatTime(duration)}</span>
+                    <span>{formatDuration(currentTime)}</span>
+                    <span>{formatDuration(duration)}</span>
                   </div>
                 </div>
 

@@ -48,6 +48,7 @@ const ArtistDetailPage = () => {
   const [scrollY, setScrollY] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [headerImgError, setHeaderImgError] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
 
@@ -95,6 +96,7 @@ const ArtistDetailPage = () => {
       try {
         setLoading(true);
         setError(null);
+        setHeaderImgError(false);
         const data = await apiClient<ArtistDetails>(`/api/artists/name/${encodeURIComponent(name)}`);
         setArtist(data);
       } catch (err) {
@@ -163,7 +165,8 @@ const ArtistDetailPage = () => {
   };
 
   const avatarUrl = getFullUrl(artist.avatarUrl);
-  const headerImageUrl = getFullUrl(artist.headerUrl) || avatarUrl || "/placeholder.jpg";
+  const primaryHeader = !headerImgError && artist.headerUrl ? getFullUrl(artist.headerUrl) : null;
+  const headerImageUrl = primaryHeader || avatarUrl;
 
   const headerTextOpacity = Math.max(0, 1 - scrollY / 150);
   const headerTextTransform = `translateY(${Math.min(
@@ -176,24 +179,29 @@ const ArtistDetailPage = () => {
   return (
     <div>
       <header className="relative w-full h-auto rounded-lg overflow-hidden group">
-        <div className="relative w-full h-0 pb-[40%] max-h-[500px] min-h-[340px]">
-          <Image
-            src={headerImageUrl}
-            alt={`Cover of ${artist.name}`}
-            fill
-            className={clsx(
-              "object-cover transition-all duration-700",
-              !artist.headerUrl && "blur-xl scale-110 opacity-60"
-            )}
-            priority
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 100vw"
-            unoptimized
-            style={{
-              transform: imageTransform,
-              objectPosition: artist.backgroundPosition || "50% 50%",
-              willChange: "transform",
-            }}
-          />
+        <div className="relative w-full h-0 pb-[40%] max-h-[500px] min-h-[340px] bg-neutral-900">
+          {headerImageUrl ? (
+            <Image
+              src={headerImageUrl}
+              alt={`Cover of ${artist.name}`}
+              fill
+              className={clsx(
+                "object-cover transition-all duration-700",
+                !primaryHeader && "blur-xl scale-110 opacity-60"
+              )}
+              priority
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 100vw"
+              unoptimized
+              onError={() => setHeaderImgError(true)}
+              style={{
+                transform: imageTransform,
+                objectPosition: artist.backgroundPosition || "50% 50%",
+                willChange: "transform",
+              }}
+            />
+          ) : (
+            <div className="absolute inset-0 bg-gradient-to-b from-neutral-800 to-neutral-900" />
+          )}
         </div>
 
         <div className="absolute inset-0 bg-gradient-to-t from-neutral-900 via-neutral-900/40 to-transparent" />

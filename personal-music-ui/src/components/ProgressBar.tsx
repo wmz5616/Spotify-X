@@ -1,15 +1,9 @@
 "use client";
 
 import { usePlayerStore } from "@/store/usePlayerStore";
+import { formatDuration } from "@/lib/utils";
 import * as React from "react";
 import { useEffect, useRef, useState } from "react";
-
-const formatTime = (seconds: number) => {
-  if (!seconds || isNaN(seconds)) return "0:00";
-  const minutes = Math.floor(seconds / 60);
-  const remainingSeconds = Math.floor(seconds % 60);
-  return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
-};
 
 const ProgressBar = () => {
   const { currentTime, duration, seek } = usePlayerStore();
@@ -83,7 +77,7 @@ const ProgressBar = () => {
   return (
     <div className="flex items-center gap-2 text-xs font-medium text-[#a7a7a7] w-full select-none group">
       <span className="min-w-[40px] text-right tabular-nums">
-        {formatTime(dragValue)}
+        {formatDuration(dragValue)}
       </span>
 
       <div
@@ -102,7 +96,7 @@ const ProgressBar = () => {
         />
       </div>
 
-      <span className="min-w-[40px] tabular-nums">{formatTime(duration)}</span>
+      <span className="min-w-[40px] tabular-nums">{formatDuration(duration)}</span>
     </div>
   );
 };

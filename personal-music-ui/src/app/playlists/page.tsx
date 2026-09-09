@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import type { Song } from "@/types";
 import ConfirmModal from "@/components/ui/ConfirmModal";
+import { getAuthenticatedSrc } from "@/lib/api-client";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
@@ -205,7 +206,7 @@ export default function PlaylistsPage() {
                 <div className="aspect-square relative rounded-md overflow-hidden mb-4 bg-neutral-700 flex items-center justify-center">
                   {playlist.coverPath ? (
                     <Image
-                      src={`${API_BASE_URL}/public${playlist.coverPath}`}
+                      src={getAuthenticatedSrc(playlist.coverPath)}
                       alt={playlist.name}
                       fill
                       className="object-cover"

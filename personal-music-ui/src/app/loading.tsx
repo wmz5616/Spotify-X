@@ -1,6 +1,6 @@
 import React from "react";
 
-const HomeLoading = () => {
+export default function Loading() {
   return (
     <div className="relative min-h-screen bg-[#121212] pt-4 pb-32 overflow-hidden">
       <div className="absolute inset-x-0 top-0 h-64 bg-gradient-to-b from-neutral-800/20 to-transparent pointer-events-none" />
@@ -45,6 +45,4 @@ const HomeLoading = () => {
       </div>
     </div>
   );
-};
-
-export default HomeLoading;
+}

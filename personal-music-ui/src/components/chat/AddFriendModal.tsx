@@ -130,7 +130,7 @@ export default function AddFriendModal({ isOpen, onClose }: AddFriendModalProps)
                                     </Link>
                                     <p className="text-sm text-neutral-400 font-medium truncate">@{searchResult.username}</p>
                                     {searchResult.bio && (
-                                        <p className="text-xs text-neutral-500 truncate mt-1 italic opacity-80 uppercase tracking-tighter grayscale group-hover:grayscale-0 transition-all">"{searchResult.bio}"</p>
+                                        <p className="text-xs text-neutral-500 truncate mt-1 italic opacity-80 uppercase tracking-tighter grayscale group-hover:grayscale-0 transition-all">&quot;{searchResult.bio}&quot;</p>
                                     )}
                                 </div>
                                 <button

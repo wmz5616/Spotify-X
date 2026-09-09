@@ -135,12 +135,6 @@ export const usePlayerStore = create<PlayerState>()(
           isLoading: true,
           currentTime: 0,
         });
-
-        if (typeof window !== "undefined") {
-          import("./useHistoryStore").then(({ useHistoryStore }) => {
-            useHistoryStore.getState().recordPlay(song.id);
-          });
-        }
       },
 
       togglePlayPause: () => {

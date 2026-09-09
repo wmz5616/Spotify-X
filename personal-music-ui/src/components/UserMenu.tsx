@@ -20,8 +20,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { apiClient, getAuthenticatedSrc } from "@/lib/api-client";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-
 export default function UserMenu() {
     const router = useRouter();
     const [isOpen, setIsOpen] = useState(false);

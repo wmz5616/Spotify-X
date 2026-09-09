@@ -10,6 +10,7 @@ import { Clock, Play, AlertCircle, Music } from "lucide-react";
 import SongRowItem from "@/components/SongRowItem";
 import { FixedSizeList as List } from "react-window";
 import PlaylistCoverUpload from "@/components/PlaylistCoverUpload";
+import { getAuthenticatedSrc } from "@/lib/api-client";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
@@ -101,7 +102,7 @@ const PlaylistDetailPage = () => {
 
   const coverArtUrl =
     playlist.songs.length > 0 && playlist.songs[0].album.coverPath
-      ? `${API_BASE_URL}/public${playlist.songs[0].album.coverPath}`
+      ? getAuthenticatedSrc(playlist.songs[0].album.coverPath)
       : "/placeholder.jpg";
 
   return (

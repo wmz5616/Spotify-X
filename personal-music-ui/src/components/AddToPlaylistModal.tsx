@@ -6,6 +6,7 @@ import { X, Plus, Music, Loader2 } from "lucide-react";
 import { useUserStore } from "@/store/useUserStore";
 import { useToastStore } from "@/store/useToastStore";
 import Image from "next/image";
+import { getAuthenticatedSrc } from "@/lib/api-client";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
@@ -151,7 +152,7 @@ export default function AddToPlaylistModal({
                                                 <Loader2 className="animate-spin text-green-500" size={20} />
                                             ) : playlist.coverPath ? (
                                                 <Image
-                                                    src={`${API_BASE_URL}/public${playlist.coverPath}`}
+                                                    src={getAuthenticatedSrc(playlist.coverPath)}
                                                     alt={playlist.name}
                                                     fill
                                                     className="object-cover"

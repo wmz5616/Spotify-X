@@ -3,17 +3,15 @@
 import React, { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Search as SearchIcon, AlertCircle } from "lucide-react";
-import Image from "next/image";
 import { clsx } from "clsx";
-import { apiClient, getAuthenticatedSrc } from "@/lib/api-client";
+import { apiClient } from "@/lib/api-client";
 import type { Album, Artist, Song, Playlist } from "@/types";
 import TopResultCard from "@/components/TopResultCard";
 import SongRowItem from "@/components/SongRowItem";
 import AlbumCard from "@/components/AlbumCard";
+import ArtistSearchResultItem from "@/components/ArtistSearchResultItem";
 import Link from "next/link";
 import { FadeInContainer, FadeInItem } from "@/components/FadeInStagger";
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
 type SearchResults = {
   albums: Album[];
@@ -170,38 +168,9 @@ const SearchPage = () => {
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
                   {results.artists
                     .slice(0, filter === "artists" ? undefined : 6)
-                    .map((artist) => {
-                      const getImageUrl = (path: string | null | undefined) => {
-                        if (!path) return "/placeholder.jpg";
-                        return getAuthenticatedSrc(path);
-                      };
-
-                      const imageUrl = getImageUrl(artist.avatarUrl);
-
-                      return (
-                        <Link
-                          href={`/artist/${encodeURIComponent(artist.name)}`}
-                          key={artist.id}
-                          className="group p-4 bg-[#181818] hover:bg-[#282828] rounded-md transition-colors flex flex-col items-center text-center gap-4"
-                        >
-                          <div className="relative w-32 h-32 rounded-full overflow-hidden shadow-lg group-hover:scale-105 transition-transform">
-                            <Image
-                              src={imageUrl}
-                              alt={artist.name}
-                              fill
-                              className="object-cover"
-                              unoptimized
-                            />
-                          </div>
-                          <div>
-                            <p className="font-bold text-white truncate w-full">
-                              {artist.name}
-                            </p>
-                            <p className="text-sm text-neutral-400">Artist</p>
-                          </div>
-                        </Link>
-                      );
-                    })}
+                    .map((artist) => (
+                      <ArtistSearchResultItem key={artist.id} artist={artist} />
+                    ))}
                 </div>
               </section>
             </FadeInItem>

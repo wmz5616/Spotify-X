@@ -5,9 +5,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { Mic2 } from "lucide-react";
 import type { Artist } from "@/types";
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-
 import { getAuthenticatedSrc } from "@/lib/api-client";
 
 interface ArtistSearchResultItemProps {

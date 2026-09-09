@@ -14,8 +14,6 @@ import SongDropdownMenu from "@/components/SongDropdownMenu";
 import Link from "next/link";
 import { apiClient, getAuthenticatedSrc } from "@/lib/api-client";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-
 type FavoriteTab = "songs" | "albums" | "artists";
 
 interface FavoriteItem {
@@ -64,16 +62,10 @@ export default function FavoritesPage() {
                         ? "/api/favorites/albums"
                         : "/api/favorites/artists";
 
-            const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                if (activeTab === "songs") setSongs(data);
-                else if (activeTab === "albums") setAlbums(data);
-                else setArtists(data);
-            }
+            const data = await apiClient<FavoriteItem[]>(endpoint);
+            if (activeTab === "songs") setSongs(data);
+            else if (activeTab === "albums") setAlbums(data);
+            else setArtists(data);
         } catch (error) {
             console.error("获取收藏失败:", error);
         }

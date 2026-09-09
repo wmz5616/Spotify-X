@@ -148,10 +148,19 @@ const AudioPlayer = () => {
       onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
       onLoadedMetadata={(e) => {
         const audioDur = e.currentTarget.duration;
-        if (audioDur && !isNaN(audioDur) && isFinite(audioDur)) {
+        const songDur = currentSong?.duration;
+        if (songDur && songDur > 0) {
+          if (audioDur && !isNaN(audioDur) && isFinite(audioDur)) {
+            if (Math.abs(audioDur - songDur) <= 4) {
+              setDuration(audioDur);
+            } else {
+              setDuration(songDur);
+            }
+          } else {
+            setDuration(songDur);
+          }
+        } else if (audioDur && !isNaN(audioDur) && isFinite(audioDur)) {
           setDuration(audioDur);
-        } else if (currentSong?.duration) {
-          setDuration(currentSong.duration);
         }
         setIsLoading(false);
         if (isPlaying) {

@@ -6,14 +6,10 @@ import { X, Mic2, Music } from "lucide-react";
 import Image from "next/image";
 import { usePlayerStore } from "@/store/usePlayerStore";
 import { getAuthenticatedSrc } from "@/lib/api-client";
+import { parseLRC, type LyricLine } from "@/lib/lrc-parser";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 const API_KEY = process.env.NEXT_PUBLIC_API_KEY || "";
-
-interface LyricLine {
-    time: number;
-    text: string;
-}
 
 interface LyricsPanelProps {
     isOpen: boolean;
@@ -25,9 +21,11 @@ export default function LyricsPanel({ isOpen, onClose }: LyricsPanelProps) {
     const [lyrics, setLyrics] = useState<LyricLine[]>([]);
     const [loading, setLoading] = useState(false);
     const [currentLineIndex, setCurrentLineIndex] = useState(-1);
+    const [coverError, setCoverError] = useState(false);
     const lyricsContainerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
+        setCoverError(false);
         if (currentSong?.id && isOpen) {
             fetchLyrics(currentSong.id);
         }
@@ -84,28 +82,6 @@ export default function LyricsPanel({ isOpen, onClose }: LyricsPanelProps) {
         }
     };
 
-    const parseLRC = (lrcContent: string): LyricLine[] => {
-        const lines = lrcContent.split("\n");
-        const result: LyricLine[] = [];
-        const timeRegex = /\[(\d{2}):(\d{2})\.(\d{2,3})\]/;
-
-        for (const line of lines) {
-            const match = line.match(timeRegex);
-            if (match) {
-                const minutes = parseInt(match[1], 10);
-                const seconds = parseInt(match[2], 10);
-                const milliseconds = parseInt(match[3].padEnd(3, "0"), 10);
-                const time = minutes * 60 + seconds + milliseconds / 1000;
-                const text = line.replace(timeRegex, "").trim();
-                if (text) {
-                    result.push({ time, text });
-                }
-            }
-        }
-
-        return result.sort((a, b) => a.time - b.time);
-    };
-
     return (
         <AnimatePresence>
             {isOpen && (
@@ -133,13 +109,14 @@ export default function LyricsPanel({ isOpen, onClose }: LyricsPanelProps) {
                         <div className="p-4 border-b border-neutral-800">
                             <div className="flex items-center gap-4">
                                 <div className="relative w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 shadow-lg">
-                                    {currentSong.album?.coverPath ? (
+                                    {currentSong.album?.coverPath && !coverError ? (
                                         <Image
-                                            src={`${API_BASE_URL}/public${currentSong.album.coverPath}`}
+                                            src={getAuthenticatedSrc(currentSong.album.coverPath)}
                                             alt={currentSong.title}
                                             fill
                                             className="object-cover"
                                             unoptimized
+                                            onError={() => setCoverError(true)}
                                         />
                                     ) : (
                                         <div className="w-full h-full bg-neutral-700 flex items-center justify-center">

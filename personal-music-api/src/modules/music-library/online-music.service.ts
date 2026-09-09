@@ -68,6 +68,9 @@ export class OnlineMusicService {
   private artistNameCache = new Map<string, OnlineArtist>();
   private streamUrlCache = new Map<number, string>();
   private lyricsCache = new Map<number, string>();
+  private artistHeaderCache = new Map<string, string>();
+  private spotifyAccessToken: string | null = null;
+  private spotifyTokenExpiresAt = 0;
 
   private httpGet(url: string, headers: Record<string, string> = {}): Promise<string> {
     return new Promise((resolve, reject) => {
@@ -153,6 +156,94 @@ export class OnlineMusicService {
   private formatTidalImageUrl(uuid?: string | null, size = '640x640'): string | null {
     if (!uuid) return null;
     return `https://resources.tidal.com/images/${uuid.replace(/-/g, '/')}/${size}.jpg`;
+  }
+
+  /**
+   * Acquire Spotify client_credentials token if SPOTIFY_CLIENT_ID & SECRET are configured
+   */
+  private async getSpotifyAccessToken(): Promise<string | null> {
+    const clientId = process.env.SPOTIFY_CLIENT_ID;
+    const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
+    if (!clientId || !clientSecret) return null;
+
+    if (this.spotifyAccessToken && Date.now() < this.spotifyTokenExpiresAt) {
+      return this.spotifyAccessToken;
+    }
+
+    try {
+      const basic = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+      const body = 'grant_type=client_credentials';
+      const res = await this.httpPost('https://accounts.spotify.com/api/token', body, {
+        Authorization: `Basic ${basic}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      });
+      const data = JSON.parse(res);
+      if (data.access_token) {
+        this.spotifyAccessToken = data.access_token;
+        this.spotifyTokenExpiresAt = Date.now() + (data.expires_in || 3600) * 1000 - 60000;
+        return this.spotifyAccessToken;
+      }
+    } catch (e) {
+      this.logger.warn('Failed to obtain Spotify token:', e);
+    }
+    return null;
+  }
+
+  /**
+   * Fetch high-definition artist background / banner image (Spotify / Deezer / Tidal)
+   */
+  async fetchArtistHeaderImage(artistName: string): Promise<string | null> {
+    const trimmed = artistName?.trim();
+    if (!trimmed) return null;
+    const lower = trimmed.toLowerCase();
+    if (this.artistHeaderCache.has(lower)) {
+      return this.artistHeaderCache.get(lower)!;
+    }
+
+    // 1. Spotify Web API (if credentials configured in env)
+    try {
+      const spotifyToken = await this.getSpotifyAccessToken();
+      if (spotifyToken) {
+        const spotifySearch = await this.httpGet(
+          `https://api.spotify.com/v1/search?q=${encodeURIComponent(trimmed)}&type=artist&limit=1`,
+          { Authorization: `Bearer ${spotifyToken}` },
+        );
+        const spotifyJson = JSON.parse(spotifySearch);
+        const artistItem = spotifyJson.artists?.items?.[0];
+        if (artistItem?.images?.[0]?.url) {
+          const url = artistItem.images[0].url;
+          this.artistHeaderCache.set(lower, url);
+          this.logger.log(`Fetched Spotify artist banner for "${trimmed}": ${url}`);
+          return url;
+        }
+      }
+    } catch (e) {
+      this.logger.warn(`Spotify API artist image lookup error for "${trimmed}": ${e}`);
+    }
+
+    // 2. High-res Photography via Deezer Open API (1000x1000 official artist portrait)
+    try {
+      const deezerRaw = await this.httpGet(
+        `https://api.deezer.com/search/artist?q=${encodeURIComponent(trimmed)}`,
+        { 'User-Agent': 'Mozilla/5.0' },
+      );
+      const deezerJson = JSON.parse(deezerRaw);
+      if (Array.isArray(deezerJson?.data) && deezerJson.data.length > 0) {
+        const match =
+          deezerJson.data.find((a: any) => a.name.toLowerCase() === lower) ||
+          deezerJson.data[0];
+        const bannerUrl = match?.picture_xl || match?.picture_big;
+        if (bannerUrl) {
+          this.artistHeaderCache.set(lower, bannerUrl);
+          this.logger.log(`Fetched HD artist banner via Deezer for "${trimmed}": ${bannerUrl}`);
+          return bannerUrl;
+        }
+      }
+    } catch (e) {
+      this.logger.warn(`Deezer artist banner error for "${trimmed}": ${e}`);
+    }
+
+    return null;
   }
 
   /**
@@ -650,11 +741,15 @@ export class OnlineMusicService {
           const albumsJson = JSON.parse(albumsRaw);
           const tracksJson = JSON.parse(tracksRaw);
 
+          const hdHeaderUrl =
+            (await this.fetchArtistHeaderImage(artist.name)) ||
+            this.formatTidalImageUrl(artist.picture, '750x750');
+
           const artistObj: OnlineArtist = {
             id: artist.id,
             name: artist.name,
             avatarUrl: this.formatTidalImageUrl(artist.picture, '750x750'),
-            headerUrl: this.formatTidalImageUrl(artist.picture, '1280x1280'),
+            headerUrl: hdHeaderUrl,
             bio: `${artist.name} is a renowned artist featured on Tidal and Monochrome.`,
           };
 
@@ -754,6 +849,7 @@ export class OnlineMusicService {
     const cleanArtist = song.artist.replace(/\s*[,/&].*$/, '').trim() || song.artist;
     const targetDuration = song.duration || 180;
 
+    let neteasePreviewCandidate: string | null = null;
     // 3. Priority 1: NetEase Cloud Music via Meting (provides full audio for pop, international, and Chinese tracks)
     try {
       let neteaseSearchUrl = `https://music.163.com/api/search/get/web?s=${encodeURIComponent(song.title + ' ' + cleanArtist)}&type=1&limit=5`;
@@ -773,12 +869,16 @@ export class OnlineMusicService {
           return diffA - diffB;
         });
         const match = sorted[0];
-
         if (match?.id) {
           const metingUrl = `https://api.injahow.cn/meting/?type=url&id=${match.id}`;
-          this.streamUrlCache.set(id, metingUrl);
-          this.logger.log(`Resolved full stream via NetEase for "${song.title}" (${match.id}, duration: ${match.duration / 1000}s)`);
-          return metingUrl;
+          // If the song is completely free on NetEase (fee === 0), it is a full length stream
+          if (match.fee === 0) {
+            this.streamUrlCache.set(id, metingUrl);
+            this.logger.log(`Resolved full free stream via NetEase for "${song.title}" (${match.id}, duration: ${match.duration / 1000}s)`);
+            return metingUrl;
+          }
+          // If VIP/paid, keep as preview candidate and try Kuwo first for a full track
+          neteasePreviewCandidate = metingUrl;
         }
       }
     } catch (e) {
@@ -818,7 +918,14 @@ export class OnlineMusicService {
       this.logger.warn(`Kuwo stream matching error for "${song.title}": ${e}`);
     }
 
-    // 5. Fallback: Title-only NetEase search
+    // 5. If Kuwo didn't have full track but NetEase had a preview/stream candidate, use it!
+    if (neteasePreviewCandidate) {
+      this.streamUrlCache.set(id, neteasePreviewCandidate);
+      this.logger.log(`Resolved stream via NetEase preview candidate for "${song.title}"`);
+      return neteasePreviewCandidate;
+    }
+
+    // 6. Fallback: Title-only NetEase search
     try {
       const neteaseSearchUrl = `https://music.163.com/api/search/get/web?s=${encodeURIComponent(cleanTitle)}&type=1&limit=3`;
       const neteaseRaw = await this.httpGet(neteaseSearchUrl, { 'User-Agent': 'Mozilla/5.0' });
