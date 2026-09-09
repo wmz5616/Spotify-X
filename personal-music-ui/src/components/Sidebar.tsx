@@ -12,7 +12,6 @@ import {
   ArrowRight,
   ListMusic,
   Mic2,
-  RefreshCw,
 } from "lucide-react";
 import { clsx } from "clsx";
 import type { Playlist, Artist } from "@/types";
@@ -52,7 +51,6 @@ const Sidebar = () => {
   const [artists, setArtists] = useState<Artist[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const [isScanning, setIsScanning] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
 
   // Hydration guard to prevent flash of unstyled/wrong-state content
@@ -82,22 +80,6 @@ const Sidebar = () => {
   useEffect(() => {
     fetchData();
   }, []);
-
-  const handleScan = async () => {
-    if (isScanning) return;
-    setIsScanning(true);
-    addToast("正在发起全量扫描...", <RefreshCw className="animate-spin" />);
-
-    try {
-      await apiClient("/api/library/scan?force=true", { method: "POST" });
-      addToast("扫描任务已在后台启动");
-    } catch (e) {
-      console.error("Scan trigger failed:", e);
-      addToast("扫描启动失败，请检查控制台");
-    } finally {
-      setTimeout(() => setIsScanning(false), 2000);
-    }
-  };
 
   const routes = [
     {
@@ -138,19 +120,6 @@ const Sidebar = () => {
             {!isSidebarCollapsed && <p className="truncate">{route.label}</p>}
           </Link>
         ))}
-
-        <button
-          onClick={handleScan}
-          disabled={isScanning}
-          className={clsx(
-            "flex items-center gap-x-4 text-neutral-400 hover:text-white transition cursor-pointer w-full font-bold",
-            isScanning && "opacity-50 cursor-not-allowed",
-            isSidebarCollapsed && "justify-center"
-          )}
-        >
-          <RefreshCw size={26} className={clsx(isScanning && "animate-spin")} />
-          {!isSidebarCollapsed && <p className="truncate">刷新</p>}
-        </button>
       </div>
 
       <UserQuickLinks collapsed={isSidebarCollapsed} />
@@ -239,13 +208,9 @@ const Sidebar = () => {
               ))}
 
               {artists.map((artist) => {
-                let avatarUrl = null;
-                if (artist.avatarUrl) {
-                  const pathWithPublic = artist.avatarUrl.startsWith("/public")
-                    ? artist.avatarUrl
-                    : `/public${artist.avatarUrl}`;
-                  avatarUrl = getAuthenticatedSrc(pathWithPublic);
-                }
+                const avatarUrl = artist.avatarUrl
+                  ? getAuthenticatedSrc(artist.avatarUrl)
+                  : null;
 
                 return (
                   <Link

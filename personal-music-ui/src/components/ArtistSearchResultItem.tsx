@@ -8,6 +8,8 @@ import type { Artist } from "@/types";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
+import { getAuthenticatedSrc } from "@/lib/api-client";
+
 interface ArtistSearchResultItemProps {
   artist: Artist;
 }
@@ -16,7 +18,7 @@ const ArtistSearchResultItem: React.FC<ArtistSearchResultItemProps> = ({
   artist,
 }) => {
   const imageUrl = artist.avatarUrl
-    ? `${API_BASE_URL}/public${artist.avatarUrl}`
+    ? getAuthenticatedSrc(artist.avatarUrl)
     : null;
 
   return (

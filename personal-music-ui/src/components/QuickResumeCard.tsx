@@ -24,7 +24,9 @@ const QuickResumeCard = ({ album, priority = false }: { album: AlbumForResume, p
   const { playSong } = usePlayerStore();
   const [isLoading, setIsLoading] = useState(false);
   const tParam = album.title ? `&t=${encodeURIComponent(album.title)}` : "";
-  const coverUrl = getAuthenticatedSrc(`api/covers/${album.id}?size=128${tParam}`);
+  const coverUrl = album.coverPath
+    ? getAuthenticatedSrc(album.coverPath)
+    : getAuthenticatedSrc(`api/covers/${album.id}?size=128${tParam}`);
 
   const handlePlayClick = async (e: React.MouseEvent) => {
     e.stopPropagation();

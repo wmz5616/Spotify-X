@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: "http",
@@ -53,6 +54,21 @@ const nextConfig = {
       {
         protocol: "https",
         hostname: "images.unsplash.com",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "**.kuwo.cn",
+        pathname: "/**",
+      },
+      {
+        protocol: "http",
+        hostname: "**.kuwo.cn",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "resources.tidal.com",
         pathname: "/**",
       },
     ],

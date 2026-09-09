@@ -127,6 +127,7 @@ export const usePlayerStore = create<PlayerState>()(
 
         set({
           currentSong: song,
+          duration: song.duration || 0,
           playQueue: newQueue,
           originalQueue: newOriginalQueue,
           currentQueueIndex: newIndex,

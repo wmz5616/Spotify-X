@@ -30,19 +30,14 @@ const NowPlayingView = () => {
   const getCoverUrl = () => {
     if (!currentSong) return "/placeholder.jpg";
 
+    const path = currentSong.album?.coverPath;
+    if (path && path !== "undefined" && path !== "null") {
+      return getAuthenticatedSrc(path);
+    }
+
     if (currentSong.album?.id) {
       const tParam = currentSong.album.title ? `?t=${encodeURIComponent(currentSong.album.title)}` : "";
       return getAuthenticatedSrc(`api/covers/${currentSong.album.id}${tParam}`);
-    }
-
-    const path = currentSong.album?.coverPath;
-    if (path && path !== "undefined" && path !== "null") {
-      if (path.startsWith("http")) return path;
-      const cleanPath = path.startsWith("/") ? path : `/${path}`;
-      if (cleanPath.startsWith("/public")) {
-        return getAuthenticatedSrc(cleanPath);
-      }
-      return getAuthenticatedSrc(`/public${cleanPath}`);
     }
 
     return "/placeholder.jpg";

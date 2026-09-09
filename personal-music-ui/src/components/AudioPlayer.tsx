@@ -147,7 +147,12 @@ const AudioPlayer = () => {
       preload="auto"
       onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
       onLoadedMetadata={(e) => {
-        setDuration(e.currentTarget.duration);
+        const audioDur = e.currentTarget.duration;
+        if (audioDur && !isNaN(audioDur) && isFinite(audioDur)) {
+          setDuration(audioDur);
+        } else if (currentSong?.duration) {
+          setDuration(currentSong.duration);
+        }
         setIsLoading(false);
         if (isPlaying) {
           e.currentTarget.play().catch((error) => {

@@ -31,6 +31,9 @@ const AlbumCard = ({ album, priority = false }: { album: AlbumForCard, priority?
   const [isLoading, setIsLoading] = useState(false);
 
   const getCoverUrl = () => {
+    if (album.coverPath) {
+      return getAuthenticatedSrc(album.coverPath);
+    }
     if (album.id) {
       const tParam = album.title ? `&t=${encodeURIComponent(album.title)}` : "";
       return getAuthenticatedSrc(`api/covers/${album.id}?size=300${tParam}`);

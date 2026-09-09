@@ -1,8 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { promises as fs } from 'fs';
 import * as path from 'path';
-import { PrismaService } from 'src/prisma/prisma.service';
-import * as mm from 'music-metadata';
+import { PrismaService } from '../../prisma/prisma.service';
+import { OnlineMusicService } from './online-music.service';
+// Note: music-metadata is ESM-only and can be dynamically imported if needed
+// import * as mm from 'music-metadata';
 import { ensureDir, ensureSymlink, pathExists, remove, copy } from 'fs-extra';
 import { Subject, Observable } from 'rxjs';
 
@@ -29,13 +31,29 @@ export class MusicLibraryService {
   private readonly logger = new Logger(MusicLibraryService.name);
   private progressSubject = new Subject<ScanProgress>();
 
-  constructor(private prisma: PrismaService) { }
+  constructor(
+    private prisma: PrismaService,
+    private onlineMusicService: OnlineMusicService,
+  ) { }
 
   getProgressStream(): Observable<ScanProgress> {
     return this.progressSubject.asObservable();
   }
 
+
   async scanAndSaveMusic(directory: string, forceUpdate: boolean = false) {
+    this.logger.warn(
+      `[TEMPORARILY DISABLED: Local Folder Scanning] 本地文件夹扫描功能已暂时停用，系统当前运行在在线 API 模式下。 (Force: ${forceUpdate})`,
+    );
+    this.progressSubject.next({
+      percentage: 100,
+      message: '本地音乐扫描功能已停用 (当前处于在线模式)',
+      current: 0,
+      total: 0,
+    });
+    return;
+    /*
+    // [ORIGINAL LOCAL SCANNING LOGIC - PRESERVED FOR FUTURE RESTORATION]
     this.logger.log(`Starting optimized scan... (Force: ${forceUpdate})`);
     const startTime = Date.now();
 
@@ -133,6 +151,7 @@ export class MusicLibraryService {
       current: totalFiles,
       total: totalFiles,
     });
+    */
   }
 
   private async extractMetadata(
@@ -172,6 +191,7 @@ export class MusicLibraryService {
     let embeddedLyrics: string | undefined;
 
     try {
+      const mm: any = await (eval('import("music-metadata")'));
       const metadata = await mm.parseFile(filePath, { skipCovers: false });
       trackNumber = metadata.common.track.no ?? undefined;
       duration = metadata.format.duration;
@@ -537,9 +557,20 @@ export class MusicLibraryService {
   }
 
   async search(query: string) {
-    if (!query || !query.trim()) return { artists: [], albums: [], songs: [] };
+    if (!query || !query.trim()) return { artists: [], albums: [], songs: [], playlists: [] };
     const q = query.trim();
 
+    // 1. First search online API (like Monochrome)
+    try {
+      const onlineResult = await this.onlineMusicService.search(q);
+      if (onlineResult.songs.length > 0 || onlineResult.albums.length > 0) {
+        return onlineResult;
+      }
+    } catch (e) {
+      this.logger.warn(`Online search failed for "${q}", falling back to local DB:`, e);
+    }
+
+    // 2. Fallback to local DB search
     const [artists, albums, songs] = await Promise.all([
       this.prisma.artist.findMany({
         where: { name: { contains: q } },
@@ -565,7 +596,7 @@ export class MusicLibraryService {
         },
       }),
     ]);
-    return { artists, albums, songs };
+    return { artists, albums, songs, playlists: [] };
   }
 
   async getAlbumArtBuffer(id: number): Promise<Buffer | null> {
@@ -588,39 +619,21 @@ export class MusicLibraryService {
     }
   }
 
+  /*
+  // [TEMPORARILY DISABLED: Local Folder File Paths Scanner]
   async getAudioFilePaths(dir: string): Promise<string[]> {
-    const files: string[] = [];
-    const stack: string[] = [path.resolve(dir)];
-    const visited = new Set<string>();
-
-    while (stack.length > 0) {
-      const currentPath = stack.pop()!;
-      try {
-        const realPath = await fs.realpath(currentPath);
-        if (visited.has(realPath)) continue;
-        visited.add(realPath);
-
-        const dirents = await fs.readdir(realPath, { withFileTypes: true });
-        for (const dirent of dirents) {
-          const res = path.resolve(realPath, dirent.name);
-          if (dirent.isDirectory()) stack.push(res);
-          else if (
-            ['.mp3', '.flac', '.m4a'].includes(path.extname(res).toLowerCase())
-          )
-            files.push(res);
-        }
-      } catch (e) {
-      }
-    }
-    return files;
+    return [];
   }
+  */
 
   async findAllArtists() {
-    return this.prisma.artist.findMany({ take: 50, orderBy: { name: 'asc' } });
+    const local = await this.prisma.artist.findMany({ take: 50, orderBy: { name: 'asc' } });
+    if (local && local.length > 0) return local;
+    return this.onlineMusicService.getTrendingArtists(20);
   }
 
   async findArtistById(id: number) {
-    return this.prisma.artist.findUnique({
+    const local = await this.prisma.artist.findUnique({
       where: { id },
       include: {
         albums: {
@@ -634,10 +647,12 @@ export class MusicLibraryService {
         },
       },
     });
+    if (local) return local;
+    return this.onlineMusicService.findArtistById(id);
   }
 
   async findArtistByName(name: string) {
-    return this.prisma.artist.findUnique({
+    const local = await this.prisma.artist.findUnique({
       where: { name },
       include: {
         albums: {
@@ -651,10 +666,12 @@ export class MusicLibraryService {
         },
       },
     });
+    if (local) return local;
+    return this.onlineMusicService.findArtistByName(name);
   }
 
   async findAllAlbums() {
-    return this.prisma.album.findMany({
+    const local = await this.prisma.album.findMany({
       select: {
         id: true,
         title: true,
@@ -663,10 +680,12 @@ export class MusicLibraryService {
         _count: { select: { songs: true } },
       },
     });
+    if (local && local.length > 0) return local;
+    return this.onlineMusicService.getTrendingAlbums(24);
   }
 
   async findAlbumById(id: number) {
-    return this.prisma.album.findUnique({
+    const local = await this.prisma.album.findUnique({
       where: { id },
       include: {
         artists: true,
@@ -682,10 +701,12 @@ export class MusicLibraryService {
         },
       },
     });
+    if (local) return local;
+    return this.onlineMusicService.findAlbumById(id);
   }
 
   async findSongById(id: number) {
-    return this.prisma.song.findUnique({
+    const local = await this.prisma.song.findUnique({
       where: { id },
       select: {
         id: true,
@@ -695,6 +716,8 @@ export class MusicLibraryService {
         album: { include: { artists: true } },
       },
     });
+    if (local) return local;
+    return this.onlineMusicService.findSongById(id);
   }
 
   async findSongPath(id: number) {
@@ -706,20 +729,27 @@ export class MusicLibraryService {
   }
 
   async findAlbumArt(id: number) {
-    return this.prisma.album.findUnique({
+    const local = await this.prisma.album.findUnique({
       where: { id },
       select: { coverPath: true },
     });
+    if (local?.coverPath) return local;
+    const online = await this.onlineMusicService.findAlbumById(id);
+    if (online?.coverPath) return { coverPath: online.coverPath };
+    return null;
   }
 
   async findRandomAlbums(take: number) {
     const count = await this.prisma.album.count();
-    const skip = Math.max(0, Math.floor(Math.random() * count) - take);
-    return this.prisma.album.findMany({
-      take,
-      skip,
-      include: { artists: true },
-    });
+    if (count > 0) {
+      const skip = Math.max(0, Math.floor(Math.random() * count) - take);
+      return this.prisma.album.findMany({
+        take,
+        skip,
+        include: { artists: true },
+      });
+    }
+    return this.onlineMusicService.getRandomAlbums(take);
   }
 
   async findAllPlaylists() {

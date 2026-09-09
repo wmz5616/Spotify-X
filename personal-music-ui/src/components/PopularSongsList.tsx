@@ -22,8 +22,7 @@ const PopularSongsList = ({ songs }: { songs: Song[] }) => {
 
         const getCoverUrl = (path: string | null | undefined) => {
           if (!path) return "/placeholder.jpg";
-          const pathWithPublic = path.startsWith("/public") ? path : `/public${path}`;
-          return getAuthenticatedSrc(pathWithPublic);
+          return getAuthenticatedSrc(path);
         };
 
         const coverUrl = getCoverUrl(song.album?.coverPath);

@@ -51,7 +51,7 @@ export default function QueuePanel({ isOpen, onClose }: QueuePanelProps) {
                                 <div className="relative w-12 h-12 rounded overflow-hidden flex-shrink-0">
                                     {currentSong.album?.coverPath ? (
                                         <Image
-                                            src={`${API_BASE_URL}/public${currentSong.album.coverPath}`}
+                                            src={getAuthenticatedSrc(currentSong.album.coverPath)}
                                             alt={currentSong.title}
                                             fill
                                             className="object-cover"
@@ -107,7 +107,7 @@ export default function QueuePanel({ isOpen, onClose }: QueuePanelProps) {
                                         <div className="relative w-10 h-10 rounded overflow-hidden flex-shrink-0">
                                             {song.album?.coverPath ? (
                                                 <Image
-                                                    src={`${API_BASE_URL}/public${song.album.coverPath}`}
+                                                    src={getAuthenticatedSrc(song.album.coverPath)}
                                                     alt={song.title}
                                                     fill
                                                     className="object-cover"

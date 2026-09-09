@@ -159,8 +159,7 @@ const ArtistDetailPage = () => {
 
   const getFullUrl = (path: string | null | undefined) => {
     if (!path) return null;
-    const pathWithPublic = path.startsWith("/public") ? path : `/public${path}`;
-    return getAuthenticatedSrc(pathWithPublic);
+    return getAuthenticatedSrc(path);
   };
 
   const avatarUrl = getFullUrl(artist.avatarUrl);
@@ -188,7 +187,7 @@ const ArtistDetailPage = () => {
             )}
             priority
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 100vw"
-            unoptimized={headerImageUrl.startsWith(API_BASE_URL)}
+            unoptimized
             style={{
               transform: imageTransform,
               objectPosition: artist.backgroundPosition || "50% 50%",
@@ -215,7 +214,7 @@ const ArtistDetailPage = () => {
                 fill
                 className="object-cover"
                 style={{ objectPosition: artist.avatarPosition || "50% 50%" }}
-                unoptimized={avatarUrl.startsWith(API_BASE_URL)}
+                unoptimized
             />
             </div>
           )}

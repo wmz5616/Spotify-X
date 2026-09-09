@@ -32,18 +32,12 @@ const TopResultCard = ({ result, type }: TopResultProps) => {
   if (isArtist) {
     const artist = result as Artist;
     if (artist.avatarUrl) {
-      const path = artist.avatarUrl.startsWith("/public")
-        ? artist.avatarUrl
-        : `/public${artist.avatarUrl}`;
-      imageUrl = getAuthenticatedSrc(path);
+      imageUrl = getAuthenticatedSrc(artist.avatarUrl);
     }
   } else {
     const album = result as Album;
     if (album.coverPath) {
-      const path = album.coverPath.startsWith("/public")
-        ? album.coverPath
-        : `/public${album.coverPath}`;
-      imageUrl = getAuthenticatedSrc(path);
+      imageUrl = getAuthenticatedSrc(album.coverPath);
     }
   }
 

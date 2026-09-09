@@ -124,24 +124,17 @@ const FullScreenPlayer = () => {
   if (!currentSong) return null;
 
   const getCoverUrl = () => {
+    const path = currentSong.album?.coverPath;
+    if (path && path !== "undefined" && path !== "null") {
+      return getAuthenticatedSrc(path);
+    }
+
     const tParam = currentSong.album?.title ? `&t=${encodeURIComponent(currentSong.album.title)}` : "";
     if (currentSong.album?.id) {
       return getAuthenticatedSrc(`api/covers/${currentSong.album.id}?size=600${tParam}`);
     }
 
-    const path = currentSong.album?.coverPath;
-
-    if (!path || path === "undefined" || path === "null") return null;
-
-    if (path.startsWith("http")) return path;
-
-    const cleanPath = path.startsWith("/") ? path : `/${path}`;
-
-    if (cleanPath.startsWith("/public")) {
-      return getAuthenticatedSrc(cleanPath);
-    }
-
-    return getAuthenticatedSrc(`/public${cleanPath}`);
+    return null;
   };
 
   const albumCover = getCoverUrl();

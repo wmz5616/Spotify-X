@@ -15,14 +15,23 @@ interface FetchOptions extends Omit<RequestInit, "body"> {
 /**
  * @param path
  */
-export function getAuthenticatedSrc(path: string): string {
-  if (!path) return "";
+export function getAuthenticatedSrc(path?: string | null): string {
+  if (!path || path === "null" || path === "undefined") return "";
+  let cleanPath = path.trim();
+
+  // 递归或正则清除意外拼装的 /public、public 前缀（例如 /publichttps://... 或 public/http://...）
+  cleanPath = cleanPath.replace(/^(\/?public\/?)+(https?:\/\/)/i, "$2");
+
+  // 如果是在线外部图片直链，直接返回，不拼接本地后端路径
+  if (cleanPath.startsWith("http://") || cleanPath.startsWith("https://")) {
+    return cleanPath;
+  }
   if (!API_KEY) {
     console.warn("getAuthenticatedSrc: 缺少 API Key");
     return "";
   }
 
-  let normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  let normalizedPath = cleanPath.startsWith("/") ? cleanPath : `/${cleanPath}`;
   
   // 核心逻辑: 如果是媒体文件夹路径且缺少 /public/ 或 /static/ 等前缀，统一补全 /public
   // 这样可以解决后端存数据库路径不带 public，但 ServeStatic 挂载在 /public 的不一致问题

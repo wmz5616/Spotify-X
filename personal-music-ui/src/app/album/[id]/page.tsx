@@ -11,7 +11,7 @@ import SongRowItem from "@/components/SongRowItem";
 import AlbumPageSkeleton from "@/components/AlbumPageSkeleton";
 import { formatDuration } from "@/lib/utils";
 import { useColor } from "color-thief-react";
-import { apiClient } from "@/lib/api-client";
+import { apiClient, getAuthenticatedSrc } from "@/lib/api-client";
 import { motion } from "framer-motion";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
@@ -39,7 +39,9 @@ const AlbumDetailPage = () => {
   const [error, setError] = useState<string | null>(null);
 
   const tParam = album?.title ? `&t=${encodeURIComponent(album.title)}` : "";
-  const albumArtUrl = id
+  const albumArtUrl = album?.coverPath
+    ? getAuthenticatedSrc(album.coverPath)
+    : id
     ? `${API_BASE_URL}/api/covers/${id}?size=600&key=${API_KEY}${tParam}`
     : "/placeholder.jpg";
 

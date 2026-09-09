@@ -29,9 +29,12 @@ import {
   ApiSecurity,
 } from '@nestjs/swagger';
 import { MusicLibraryService } from './music-library.service';
+import { OnlineMusicService } from './online-music.service';
 import { StreamingService } from '../streaming/streaming.service';
 import type { Request, Response } from 'express';
-import { createReadStream, statSync, existsSync, mkdirSync } from 'fs';
+import { createReadStream, statSync, existsSync, mkdirSync, writeFileSync } from 'fs';
+import * as http from 'http';
+import * as https from 'https';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import * as mime from 'mime-types';
@@ -53,6 +56,7 @@ export class MusicLibraryController {
 
   constructor(
     private readonly musicLibraryService: MusicLibraryService,
+    private readonly onlineMusicService: OnlineMusicService,
     private readonly streamingService: StreamingService,
   ) { }
 
@@ -86,21 +90,21 @@ export class MusicLibraryController {
 
   @ApiTags('Library')
   @ApiOperation({
-    summary: '扫描音乐库',
-    description: '启动后台任务扫描指定目录中的音乐文件',
+    summary: '扫描音乐库 (已暂时停用)',
+    description: '本地音乐扫描功能已停用，系统当前运行在在线 API 模式下',
   })
-  @ApiQuery({
-    name: 'force',
-    required: false,
-    description: '是否强制重新扫描所有文件',
-    example: 'true',
-  })
-  @ApiResponse({ status: 200, description: '扫描任务已启动' })
-  @ApiResponse({ status: 409, description: '扫描正在进行中' })
+  @ApiResponse({ status: 200, description: '扫描功能已停用' })
   @ApiSecurity('api-key')
   @UseGuards(ApiKeyGuard)
   @Post('library/scan')
   async scanLibrary(@Query('force') force: string) {
+    this.logger.warn('Received scanLibrary request, but scanning is currently disabled.');
+    return {
+      message: '本地音乐库扫描功能已停用，系统当前运行在在线 API 模式下。',
+      onlineMode: true,
+    };
+    /*
+    // [TEMPORARILY DISABLED: Local Folder Scanning]
     if (this.isScanning) {
       throw new HttpException('扫描正在进行中，请稍后', HttpStatus.CONFLICT);
     }
@@ -127,6 +131,7 @@ export class MusicLibraryController {
       message:
         'Scan started in background. Please connect to /api/library/scan/progress for updates.',
     };
+    */
   }
 
   @ApiTags('Albums')
@@ -182,6 +187,30 @@ export class MusicLibraryController {
 
     const album = await this.musicLibraryService.findAlbumArt(id);
     if (album && album.coverPath) {
+      if (album.coverPath.startsWith('http://') || album.coverPath.startsWith('https://')) {
+        try {
+          if (!existsSync(cacheDir)) {
+            mkdirSync(cacheDir, { recursive: true });
+          }
+          const buf = await this.onlineMusicService.fetchRemoteImage(album.coverPath);
+          if (buf) {
+            let pipeline = sharp(buf);
+            if (width) {
+              pipeline = pipeline.resize(width, width, { fit: 'cover' });
+            }
+            const outputBuffer = await pipeline.jpeg({ quality: 80 }).toBuffer();
+            writeFileSync(cachePath, outputBuffer);
+            response.setHeader('Content-Type', 'image/jpeg');
+            response.setHeader('Cache-Control', 'public, max-age=31536000');
+            response.send(outputBuffer);
+            return;
+          }
+        } catch (e) {
+          this.logger.warn(`Failed to process remote cover ${album.coverPath}: ${e}`);
+          return response.redirect(album.coverPath);
+        }
+      }
+
       const relativePath = album.coverPath.startsWith('/')
         ? album.coverPath.slice(1)
         : album.coverPath;
@@ -194,7 +223,20 @@ export class MusicLibraryController {
     }
 
     if (!existsSync(targetPath)) {
-      throw new NotFoundException('Cover image not found');
+      const fallback = await sharp({
+        create: {
+          width: width || 300,
+          height: width || 300,
+          channels: 3,
+          background: { r: 35, g: 35, b: 35 },
+        },
+      })
+        .jpeg()
+        .toBuffer();
+      response.setHeader('Content-Type', 'image/jpeg');
+      response.setHeader('Cache-Control', 'public, max-age=60');
+      response.send(fallback);
+      return;
     }
 
     try {
@@ -254,6 +296,94 @@ export class MusicLibraryController {
   @Get('artists')
   findAllArtists() {
     return this.musicLibraryService.findAllArtists();
+  }
+
+  @ApiTags('Artists')
+  @ApiOperation({ summary: '获取艺术家头像' })
+  @Get('artists/:id/avatar')
+  async getArtistAvatar(
+    @Param('id', ParseIntPipe) id: number,
+    @Res() response: Response,
+  ) {
+    const cacheDir = path.join(process.cwd(), 'public', 'cache', 'artists');
+    const cachePath = path.join(cacheDir, `${id}.jpg`);
+    if (existsSync(cachePath)) {
+      response.setHeader('Content-Type', 'image/jpeg');
+      response.setHeader('Cache-Control', 'public, max-age=31536000');
+      createReadStream(cachePath).pipe(response);
+      return;
+    }
+
+    const artist = await this.musicLibraryService.findArtistById(id);
+    if (artist?.avatarUrl) {
+      if (artist.avatarUrl.startsWith('http://') || artist.avatarUrl.startsWith('https://')) {
+        try {
+          if (!existsSync(cacheDir)) {
+            mkdirSync(cacheDir, { recursive: true });
+          }
+          const buf = await this.onlineMusicService.fetchRemoteImage(artist.avatarUrl);
+          if (buf) {
+            writeFileSync(cachePath, buf);
+            response.setHeader('Content-Type', 'image/jpeg');
+            response.setHeader('Cache-Control', 'public, max-age=31536000');
+            response.send(buf);
+            return;
+          }
+        } catch {
+          return response.redirect(artist.avatarUrl);
+        }
+      }
+    }
+    return response.status(404).send('Avatar not found');
+  }
+
+  @ApiTags('Images')
+  @ApiOperation({ summary: '远程图片代理与缓存' })
+  @Get('images/proxy')
+  async proxyImage(
+    @Query('url') imageUrl: string,
+    @Query('w') widthStr: string,
+    @Res() response: Response,
+  ) {
+    if (!imageUrl) {
+      return response.status(400).send('Missing url parameter');
+    }
+    const cleanUrl = decodeURIComponent(imageUrl);
+    const hash = Buffer.from(cleanUrl).toString('base64').replace(/[/+=]/g, '_').slice(0, 48);
+    const cacheDir = path.join(process.cwd(), 'public', 'cache', 'proxy');
+    const cachePath = path.join(cacheDir, `${hash}.jpg`);
+
+    if (existsSync(cachePath)) {
+      response.setHeader('Content-Type', 'image/jpeg');
+      response.setHeader('Cache-Control', 'public, max-age=31536000');
+      createReadStream(cachePath).pipe(response);
+      return;
+    }
+
+    try {
+      const buf = await this.onlineMusicService.fetchRemoteImage(cleanUrl);
+      if (buf) {
+        if (!existsSync(cacheDir)) {
+          mkdirSync(cacheDir, { recursive: true });
+        }
+        let pipeline = sharp(buf);
+        if (widthStr) {
+          const w = parseInt(widthStr, 10);
+          if (!isNaN(w) && w > 0 && w <= 2048) {
+            pipeline = pipeline.resize(w, w, { fit: 'cover' });
+          }
+        }
+        const outputBuffer = await pipeline.jpeg({ quality: 85 }).toBuffer();
+        writeFileSync(cachePath, outputBuffer);
+        response.setHeader('Content-Type', 'image/jpeg');
+        response.setHeader('Cache-Control', 'public, max-age=31536000');
+        response.send(outputBuffer);
+        return;
+      }
+    } catch (e) {
+      this.logger.warn(`Failed to proxy image ${cleanUrl}: ${e}`);
+    }
+    return response.redirect(cleanUrl);
   }
 
   @ApiTags('Artists')
@@ -351,7 +481,7 @@ export class MusicLibraryController {
   @ApiTags('Songs')
   @ApiOperation({
     summary: '获取歌词',
-    description: '获取指定歌曲的歌词内容',
+    description: '获取指定歌曲的歌词内容 (支持本地和在线歌词)',
   })
   @ApiParam({ name: 'id', description: '歌曲 ID', example: 1 })
   @ApiResponse({ status: 200, description: '成功返回歌词' })
@@ -360,10 +490,11 @@ export class MusicLibraryController {
   @Get('songs/:id/lyrics')
   async getLyrics(@Param('id', ParseIntPipe) id: number) {
     const song = await this.musicLibraryService.findSongById(id);
-    if (!song) {
-      throw new NotFoundException(`Song with ID ${id} not found`);
+    if (song && song.lyrics) {
+      return { lyrics: song.lyrics };
     }
-    return { lyrics: song.lyrics || '' };
+    const onlineLyrics = await this.onlineMusicService.getLyrics(id);
+    return { lyrics: onlineLyrics || '' };
   }
 
   @ApiTags('Search')
@@ -403,7 +534,7 @@ export class MusicLibraryController {
   @ApiTags('Songs')
   @ApiOperation({
     summary: '获取音频流',
-    description: '流式传输音频文件，支持 Range 请求用于播放进度控制',
+    description: '流式传输音频文件，支持本地和在线流媒体 (带 Range 支持)',
   })
   @ApiParam({ name: 'id', description: '歌曲 ID', example: 1 })
   @ApiQuery({ name: 'token', required: false, description: '流授权令牌' })
@@ -427,17 +558,22 @@ export class MusicLibraryController {
       this.validateQueryToken(key);
     }
 
+    // 1. Check if song exists on local disk
     const songPath = await this.musicLibraryService.findSongPath(id);
-
-    if (!songPath) {
-      throw new NotFoundException('Song not found in database');
+    if (songPath && existsSync(songPath)) {
+      return this.streamLocalFile(songPath, request, response);
     }
 
-    if (!existsSync(songPath)) {
-      this.logger.error(`File missing at path: ${songPath}`);
-      throw new NotFoundException('Audio file not found on disk');
+    // 2. Otherwise, resolve from online streaming service!
+    const onlineUrl = await this.onlineMusicService.resolveStreamUrl(id);
+    if (onlineUrl) {
+      return this.streamRemoteUrl(onlineUrl, request, response);
     }
 
+    throw new NotFoundException('Audio stream not available for this song');
+  }
+
+  private streamLocalFile(songPath: string, request: Request, response: Response) {
     const mimeType = mime.lookup(songPath) || 'application/octet-stream';
     const { size } = statSync(songPath);
     const rangeHeader = request.headers.range;
@@ -494,6 +630,47 @@ export class MusicLibraryController {
     const file = createReadStream(songPath);
     handleStreamError(file);
     file.pipe(response);
+  }
+
+  private streamRemoteUrl(url: string, request: Request, response: Response) {
+    const mod = url.startsWith('https') ? https : http;
+    const clientHeaders: Record<string, string> = {
+      'User-Agent': 'okhttp/3.10.0',
+    };
+    if (request.headers.range) {
+      clientHeaders['Range'] = request.headers.range as string;
+    }
+
+    const req = mod.get(url, { headers: clientHeaders }, (remoteRes) => {
+      if (remoteRes.statusCode && remoteRes.statusCode >= 300 && remoteRes.statusCode < 400 && remoteRes.headers.location) {
+        return this.streamRemoteUrl(remoteRes.headers.location, request, response);
+      }
+
+      const statusCode = remoteRes.statusCode || 200;
+      const responseHeaders: Record<string, any> = {
+        'Content-Type': remoteRes.headers['content-type'] || 'audio/mpeg',
+        'Accept-Ranges': 'bytes',
+        'X-Content-Type-Options': 'nosniff',
+        'Content-Disposition': 'inline',
+      };
+
+      if (remoteRes.headers['content-length']) {
+        responseHeaders['Content-Length'] = remoteRes.headers['content-length'];
+      }
+      if (remoteRes.headers['content-range']) {
+        responseHeaders['Content-Range'] = remoteRes.headers['content-range'];
+      }
+
+      response.writeHead(statusCode, responseHeaders);
+      remoteRes.pipe(response);
+    });
+
+    req.on('error', (err) => {
+      this.logger.error(`Remote audio stream error for ${url}:`, err);
+      if (!response.headersSent) {
+        response.sendStatus(HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+    });
   }
 
   @ApiTags('Playlists')

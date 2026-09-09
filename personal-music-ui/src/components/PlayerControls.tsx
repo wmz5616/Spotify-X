@@ -85,7 +85,9 @@ const PlayerControls = () => {
 
   const albumData = currentSong.album as any;
   const tParam = albumData?.title ? `&t=${encodeURIComponent(albumData.title)}` : "";
-  const albumArtUrl = albumData?.id
+  const albumArtUrl = albumData?.coverPath
+    ? getAuthenticatedSrc(albumData.coverPath)
+    : albumData?.id
     ? getAuthenticatedSrc(`api/covers/${albumData.id}?size=128${tParam}`)
     : "/placeholder.jpg";
 

@@ -141,9 +141,7 @@ export default function FavoritesPage() {
     const getImageUrl = (item: FavoriteItem) => {
         const getPath = (path: string | undefined) => {
             if (!path) return null;
-            if (path.startsWith("http")) return path;
-            const pathWithPublic = path.startsWith("/public") ? path : `/public${path}`;
-            return getAuthenticatedSrc(pathWithPublic);
+            return getAuthenticatedSrc(path);
         };
 
         if (item.coverPath) return getPath(item.coverPath);

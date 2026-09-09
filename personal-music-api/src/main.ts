@@ -1,3 +1,7 @@
+import * as crypto from 'crypto';
+if (!globalThis.crypto) {
+  (globalThis as any).crypto = crypto;
+}
 import { NestFactory, HttpAdapterHost } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe, Logger } from '@nestjs/common';

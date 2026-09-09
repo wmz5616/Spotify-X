@@ -188,8 +188,7 @@ export default function HistoryPage() {
                                             src={(() => {
                                                 const path = song.album?.coverPath;
                                                 if (!path) return "/placeholder.jpg";
-                                                const pathWithPublic = path.startsWith("/public") ? path : `/public${path}`;
-                                                return getAuthenticatedSrc(pathWithPublic);
+                                                return getAuthenticatedSrc(path);
                                             })()}
                                             alt={song.title}
                                             fill
