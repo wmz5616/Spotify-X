@@ -285,6 +285,29 @@ export class MusicLibraryController {
     return this.musicLibraryService.findRandomAlbums(take);
   }
 
+  @ApiTags('MV')
+  @ApiOperation({
+    summary: '获取歌曲关联的 MV 视频地址',
+    description: '根据歌曲名称和歌手名称获取官方网易云高清 MV 播放直链',
+  })
+  @ApiQuery({ name: 'title', required: true, description: '歌曲名称' })
+  @ApiQuery({ name: 'artist', required: false, description: '歌手名称' })
+  @ApiQuery({ name: 'duration', required: false, description: '歌曲时长（秒或毫秒）' })
+  @ApiSecurity('api-key')
+  @UseGuards(ApiKeyGuard)
+  @Get('mv')
+  async getSongMv(
+    @Query('title') title: string,
+    @Query('artist') artist?: string,
+    @Query('duration') duration?: string,
+  ) {
+    if (!title || !title.trim()) {
+      return { hasMv: false };
+    }
+    const durNum = duration ? parseFloat(duration) : undefined;
+    return this.onlineMusicService.getSongMv(title.trim(), artist?.trim(), durNum);
+  }
+
   @ApiTags('Artists')
   @ApiOperation({
     summary: '获取所有艺术家',

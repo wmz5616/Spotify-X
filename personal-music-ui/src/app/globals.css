@@ -120,8 +120,17 @@ body {
 }
 
 
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+.custom-scrollbar:hover {
+  scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+}
+
 .custom-scrollbar::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
@@ -130,15 +139,16 @@ body {
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
   background: transparent;
-  border-radius: 10px;
+  border-radius: 9999px;
+  border: none;
 }
 
 .custom-scrollbar:hover::-webkit-scrollbar-thumb {
-  background: #555;
+  background: rgba(255, 255, 255, 0.25);
 }
 
 .custom-scrollbar:hover::-webkit-scrollbar-thumb:hover {
-  background: #777;
+  background: rgba(255, 255, 255, 0.4);
 }
 
 .no-scrollbar {

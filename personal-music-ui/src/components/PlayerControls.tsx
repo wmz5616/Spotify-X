@@ -15,7 +15,7 @@ import {
   Heart,
   Mic2,
   ListMusic,
-  MonitorSpeaker,
+  TvMinimalPlay,
   Maximize2,
 } from "lucide-react";
 
@@ -31,6 +31,7 @@ import LyricsPanel from "./LyricsPanel";
 import LikeButton from "./LikeButton";
 import AudioVisualizer from "./AudioVisualizer";
 import QueuePanel from "./QueuePanel";
+import MvPlayerModal from "./MvPlayerModal";
 import { getAuthenticatedSrc } from "@/lib/api-client";
 import { cn, cleanSongTitle } from "@/lib/utils";
 
@@ -53,6 +54,7 @@ const PlayerControls = () => {
   const [isMounted, setIsMounted] = useState(false);
   const [showLyrics, setShowLyrics] = useState(false);
   const [showQueue, setShowQueue] = useState(false);
+  const [showMv, setShowMv] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
@@ -282,10 +284,20 @@ const PlayerControls = () => {
           </button>
 
           <button
-            className="text-[#b3b3b3] hover:text-white transition-colors p-1"
-            title="Connect to a device"
+            onClick={() => {
+              if (!currentSong) {
+                addToast("请先选择一首歌曲播放");
+                return;
+              }
+              setShowMv(true);
+            }}
+            className={cn(
+              "transition-all duration-150 p-1 hover:scale-110 active:scale-95",
+              showMv ? "text-green-500" : "text-[#b3b3b3] hover:text-white"
+            )}
+            title="MV"
           >
-            <MonitorSpeaker size={16} />
+            <TvMinimalPlay size={17} />
           </button>
 
           <div className="flex items-center gap-2 w-32">
@@ -305,6 +317,17 @@ const PlayerControls = () => {
       <FullScreenPlayer />
       <LyricsPanel isOpen={showLyrics} onClose={() => setShowLyrics(false)} />
       <QueuePanel isOpen={showQueue} onClose={() => setShowQueue(false)} />
+      <MvPlayerModal
+        isOpen={showMv}
+        onClose={() => setShowMv(false)}
+        songTitle={cleanSongTitle(currentSong?.title, currentSong?.artist)}
+        artistName={
+          currentSong?.artist ||
+          (currentSong?.album as any)?.artists?.[0]?.name ||
+          (currentSong?.album as any)?.artist
+        }
+        duration={currentSong?.duration}
+      />
     </>
   );
 };

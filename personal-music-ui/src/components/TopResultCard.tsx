@@ -83,14 +83,17 @@ const TopResultCard = ({ result, type }: TopResultProps) => {
     : (result as Album).title;
 
   return (
-    <Link
-      href={href}
-      className="group relative flex flex-col gap-4 bg-[#181818] hover:bg-[#282828] p-5 rounded-lg transition-colors duration-300 w-full h-full min-h-[220px]"
-    >
-      <div className="relative">
+    <div className="group relative flex flex-col gap-4 bg-[#181818] hover:bg-[#282828] p-5 rounded-lg transition-colors duration-300 w-full h-full min-h-[220px]">
+      <Link
+        href={href}
+        className="absolute inset-0 z-0 rounded-lg"
+        aria-label={displayName}
+      />
+
+      <div className="relative z-10 pointer-events-none">
         <div
           className={cn(
-            "relative w-24 h-24 shadow-lg mb-2 bg-[#282828] flex items-center justify-center",
+            "relative w-24 h-24 shadow-lg mb-2 bg-[#282828] flex items-center justify-center pointer-events-auto",
             isArtist
               ? "rounded-full overflow-hidden"
               : "rounded-md overflow-hidden"
@@ -111,7 +114,7 @@ const TopResultCard = ({ result, type }: TopResultProps) => {
           )}
         </div>
 
-        <div className="absolute bottom-0 right-0 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 shadow-xl z-20">
+        <div className="absolute bottom-0 right-0 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 shadow-xl z-20 pointer-events-auto">
           <button
             onClick={handlePlay}
             disabled={isLoading}
@@ -130,11 +133,11 @@ const TopResultCard = ({ result, type }: TopResultProps) => {
         </div>
       </div>
 
-      <div className="flex flex-col gap-1 mt-auto">
+      <div className="flex flex-col gap-1 mt-auto relative z-10 pointer-events-none">
         <h2 className="text-2xl md:text-3xl font-bold text-white tracking-tight line-clamp-1">
           {displayName}
         </h2>
-        <div className="flex items-center gap-2 mt-1">
+        <div className="flex items-center gap-2 mt-1 pointer-events-auto">
           <span className="text-xs font-bold tracking-wider uppercase bg-[#121212]/60 text-white px-3 py-1 rounded-full">
             {type}
           </span>
@@ -144,7 +147,7 @@ const TopResultCard = ({ result, type }: TopResultProps) => {
                 <React.Fragment key={a.id}>
                   <Link
                     href={a.id ? `/artist/${encodeURIComponent(a.name)}?id=${a.id}` : `/artist/${encodeURIComponent(a.name)}`}
-                    className="hover:underline hover:text-white transition-colors"
+                    className="hover:underline hover:text-white transition-colors relative z-10"
                     onClick={(e) => e.stopPropagation()}
                   >
                     {a.name}
@@ -156,7 +159,7 @@ const TopResultCard = ({ result, type }: TopResultProps) => {
           )}
         </div>
       </div>
-    </Link>
+    </div>
   );
 };
 

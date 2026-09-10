@@ -48,6 +48,23 @@ export interface OnlineSong {
   };
 }
 
+export interface MvClarityOption {
+  clarity: string;
+  url: string;
+}
+
+export interface MvResult {
+  hasMv: boolean;
+  id?: number;
+  title?: string;
+  artistName?: string;
+  cover?: string;
+  duration?: number;
+  playCount?: number;
+  url?: string;
+  clarityList?: MvClarityOption[];
+}
+
 export interface OnlineSearchResult {
   songs: OnlineSong[];
   albums: OnlineAlbum[];
@@ -1085,6 +1102,285 @@ export class OnlineMusicService implements OnModuleInit {
     });
   }
 
+  private mvCache = new Map<string, MvResult>();
+
+  /**
+   * 清理核心歌曲名（去除各种版本括号与空格，便于基础字面比对）
+   */
+  private cleanCoreTitle(title: string): string {
+    if (!title) return '';
+    return title
+      .replace(/\(.*?\)|（.*?）|\[.*?\]|【.*?】/g, '')
+      .replace(/\s+/g, '')
+      .toLowerCase();
+  }
+
+  /**
+   * 歌手名称多维度匹配（兼容多歌手、中英文艺名、首尾包含等）
+   */
+  private isArtistMatched(
+    targetArtist: string,
+    mvArtistName?: string,
+    mvArtists?: Array<{ name: string }>,
+  ): boolean {
+    if (!targetArtist) return true;
+    const t = targetArtist.toLowerCase().trim();
+    const m = (mvArtistName || '').toLowerCase().trim();
+    const list = Array.isArray(mvArtists)
+      ? mvArtists.map((a) => (a.name || '').toLowerCase().trim())
+      : [];
+
+    if (m === t || list.includes(t)) return true;
+    if (m.includes(t) || t.includes(m)) return true;
+    if (list.some((a) => a.includes(t) || t.includes(a))) return true;
+
+    // 分词匹配（如 "G.E.M.邓紫棋" 切为 ["g.e.m.", "邓紫棋"]，或 "周杰伦 / 费玉清"）
+    const targetTokens = t.split(/[/,&、\s]+/).filter((tok) => tok.length > 0);
+    const mvTokens = m.split(/[/,&、\s]+/).filter((tok) => tok.length > 0);
+
+    for (const tt of targetTokens) {
+      if (tt.length <= 1 && !/[a-zA-Z0-9]/.test(tt)) continue;
+      if (m.includes(tt) || list.some((a) => a.includes(tt))) return true;
+    }
+    for (const mt of mvTokens) {
+      if (mt.length <= 1 && !/[a-zA-Z0-9]/.test(mt)) continue;
+      if (t.includes(mt)) return true;
+    }
+
+    return false;
+  }
+
+  async getSongMv(
+    title: string,
+    artist?: string,
+    duration?: number,
+  ): Promise<MvResult> {
+    if (!title || !title.trim()) {
+      return { hasMv: false };
+    }
+
+    const cleanTitle = title.trim();
+    const cleanArtist = (artist || '').trim();
+    const cleanSong = this.cleanCoreTitle(cleanTitle);
+    const cacheKey = `${cleanTitle}__${cleanArtist}__${duration || 0}`.toLowerCase();
+
+    if (this.mvCache.has(cacheKey)) {
+      return this.mvCache.get(cacheKey)!;
+    }
+
+    try {
+      // 构造检索词：歌手 + 核心纯歌名，确保网易云能命中该歌曲的全量 MV 库
+      const keyword = cleanArtist ? `${cleanArtist} ${cleanSong}` : cleanSong;
+      const searchUrl = `https://music.163.com/api/cloudsearch/pc?s=${encodeURIComponent(keyword)}&type=1004`;
+
+      const rawSearch = await this.httpGet(searchUrl, {
+        Referer: 'https://music.163.com',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+      });
+
+      const searchJson = JSON.parse(rawSearch);
+      const mvs = searchJson?.result?.mvs;
+
+      if (!Array.isArray(mvs) || mvs.length === 0) {
+        const emptyRes: MvResult = { hasMv: false };
+        this.mvCache.set(cacheKey, emptyRes);
+        return emptyRes;
+      }
+
+      // 版本属性研判：歌曲名字是否带有现场/Live属性
+      const isSongLive =
+        /live|现场|演唱会|巡演|音乐会|音乐节|音乐盛典|跨年|歌手|我是歌手|天赐的声音|声生不息|纯享/i.test(
+          cleanTitle,
+        );
+      const isSongCover = /cover|翻唱/i.test(cleanTitle);
+
+      const junkWords = [
+        '花絮',
+        '预告',
+        '片段',
+        'teaser',
+        'trailer',
+        '拍摄',
+        '采访',
+        '访谈',
+        '幕后',
+        '问候',
+        '教程',
+        '舞蹈版',
+        '练习室',
+        '纯钢琴',
+        '纯音',
+        '伴奏',
+        'inst',
+        'instrumental',
+        '混剪',
+        '独家问候',
+      ];
+      const officialWords = [
+        '官方版',
+        'official',
+        'mv',
+        '正式版',
+        '完整版',
+        '高清版',
+        '原版',
+        '剧场版',
+      ];
+
+      const candidates: Array<{ mv: any; score: number }> = [];
+
+      for (const mv of mvs) {
+        let score = 100;
+        const mvTitle = (mv.name || '').toLowerCase();
+        const cleanMv = this.cleanCoreTitle(mv.name || '');
+
+        // 1. 歌手必须严格匹配：防止同歌名但不同歌手张冠李戴（如周杰伦与高伟）
+        if (
+          cleanArtist &&
+          !this.isArtistMatched(cleanArtist, mv.artistName, mv.artists)
+        ) {
+          continue;
+        }
+
+        // 2. 歌名必须包含核心词：防止网易云推荐同歌手的其他曲目或访谈
+        if (!cleanMv.includes(cleanSong) && !cleanSong.includes(cleanMv)) {
+          continue;
+        }
+
+        if (cleanMv === cleanSong) {
+          score += 80;
+        } else if (cleanMv.startsWith(cleanSong) || cleanMv.endsWith(cleanSong)) {
+          score += 40;
+        } else {
+          score += 20;
+        }
+
+        // 3. 严格过滤/惩罚花絮、预告、舞蹈室、练习生、采访、伴奏等垃圾视频
+        if (junkWords.some((w) => mvTitle.includes(w))) {
+          score -= 150;
+        }
+
+        // 4. 严格过滤/惩罚翻唱（除非输入歌曲本身是 Cover）
+        const isMvCover = /cover|翻唱/.test(mvTitle);
+        if (!isSongCover && isMvCover) {
+          score -= 200;
+        }
+
+        // 5. 核心：版本精准对应（歌曲带 live 则优先现场版；歌曲不带 live 默认必须为官拍/正式版）
+        const isMvLive =
+          /live|现场|演唱会|巡演|音乐会|音乐节|音乐盛典|跨年|歌手|我是歌手|天赐的声音|声生不息|纯享/i.test(
+            mvTitle,
+          );
+        const hasOfficialMarker = officialWords.some((w) => mvTitle.includes(w));
+
+        if (isSongLive) {
+          // 当前歌曲是 Live 版
+          if (isMvLive) {
+            score += 70; // 现场版精准命中加分
+          } else {
+            score -= 60; // 降低录音室官拍的优先级
+          }
+        } else {
+          // 当前歌曲是正式版/默认版（不带 live）
+          if (isMvLive) {
+            score -= 160; // 强力重罚现场版，杜绝普通歌曲弹出演唱会/现场版
+          } else {
+            score += 30; // 官拍/录音室版加分
+            if (hasOfficialMarker) {
+              score += 40; // 带有“官方版/Official/MV”标识加分
+            }
+          }
+        }
+
+        // 6. 时长差异对齐（避免误选严重超长串烧或短切片）
+        if (duration && mv.duration) {
+          const songSec = duration > 1000 ? duration / 1000 : duration;
+          const mvSec = mv.duration / 1000;
+          const diff = Math.abs(songSec - mvSec);
+          if (diff <= 15) {
+            score += 30;
+          } else if (diff <= 35) {
+            score += 15;
+          } else if (diff > 120) {
+            score -= 40;
+          }
+        }
+
+        candidates.push({ mv, score });
+      }
+
+      // 按匹配度评分从高到低排序
+      candidates.sort((a, b) => b.score - a.score);
+
+      // 必须达到及格门槛（120分），否则宁缺毋滥返回无 MV，绝不播放无关视频
+      const bestCandidate =
+        candidates.length > 0 && candidates[0].score >= 120
+          ? candidates[0].mv
+          : null;
+
+      if (!bestCandidate) {
+        const emptyRes: MvResult = { hasMv: false };
+        this.mvCache.set(cacheKey, emptyRes);
+        return emptyRes;
+      }
+
+      const selectedMv = bestCandidate;
+
+      // 获取 MV 各画质播放地址
+      const detailUrl = `https://music.163.com/api/mv/detail?id=${selectedMv.id}&type=mp4`;
+      const rawDetail = await this.httpGet(detailUrl, {
+        Referer: 'https://music.163.com',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+      });
+
+      const detailJson = JSON.parse(rawDetail);
+      const brs = detailJson?.data?.brs || {};
+
+      const clarityMap: Record<string, string> = {
+        '1080': '1080P',
+        '720': '720P',
+        '480': '480P',
+        '240': '240P',
+      };
+
+      const clarityList: MvClarityOption[] = [];
+      for (const resKey of ['1080', '720', '480', '240']) {
+        if (brs[resKey]) {
+          clarityList.push({
+            clarity: clarityMap[resKey] || `${resKey}P`,
+            url: brs[resKey],
+          });
+        }
+      }
+
+      const bestUrl = clarityList.length > 0 ? clarityList[0].url : null;
+
+      if (!bestUrl) {
+        const emptyRes: MvResult = { hasMv: false };
+        this.mvCache.set(cacheKey, emptyRes);
+        return emptyRes;
+      }
+
+      const result: MvResult = {
+        hasMv: true,
+        id: selectedMv.id,
+        title: selectedMv.name,
+        artistName: selectedMv.artistName,
+        cover: selectedMv.cover,
+        duration: selectedMv.duration,
+        playCount: selectedMv.playCount,
+        url: bestUrl,
+        clarityList,
+      };
+
+      this.mvCache.set(cacheKey, result);
+      return result;
+    } catch (e: any) {
+      this.logger.warn(`Failed to fetch MV for ${title}: ${e.message}`);
+      return { hasMv: false };
+    }
+  }
+
   private hashCode(str: string): number {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
@@ -1094,3 +1390,4 @@ export class OnlineMusicService implements OnModuleInit {
     return Math.abs(hash);
   }
 }
+
