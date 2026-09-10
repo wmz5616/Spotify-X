@@ -48,3 +48,7 @@ public/covers/
 **/public/covers/
 public/artist-images/
 **/public/artist-images/
+
+# API uploaded and cached assets
+personal-music-api/public/
+

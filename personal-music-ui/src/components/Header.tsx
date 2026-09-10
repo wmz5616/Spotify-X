@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { Search, ChevronLeft, ChevronRight, Bell } from "lucide-react";
 import { clsx } from "clsx";
 import UserMenu from "./UserMenu";
@@ -15,7 +15,9 @@ import AddFriendModal from "./chat/AddFriendModal";
 const Header = () => {
   const router = useRouter();
   const pathname = usePathname();
-  const [query, setQuery] = useState("");
+  const searchParams = useSearchParams();
+  const urlQ = searchParams?.get("q") || "";
+  const [query, setQuery] = useState(urlQ);
   const [isScrolled, setIsScrolled] = useState(false);
   const unreadCount = useNotificationStore(state => state.getUnreadCount());
   const { setChatOpen, totalUnreadCount, fetchConversations, initSocket } = useChatStore();
@@ -25,7 +27,14 @@ const Header = () => {
   const user = useUserStore(state => state.user);
 
   useEffect(() => {
+    if (pathname === "/search") {
+      setQuery(urlQ);
+    } else {
+      setQuery("");
+    }
+  }, [pathname, urlQ]);
 
+  useEffect(() => {
     if (!user?.id) return;
 
     startPolling();
@@ -38,7 +47,6 @@ const Header = () => {
   }, [startPolling, stopPolling, fetchConversations, initSocket, user?.id]);
 
   useEffect(() => {
-
     const mainContent = document.getElementById("main-content");
     if (!mainContent) return;
 
@@ -53,13 +61,21 @@ const Header = () => {
   }, []);
 
   useEffect(() => {
+    // Only manage search query URL updates when actively on the search page
+    if (pathname !== "/search") return;
+
     const debounceTimer = setTimeout(() => {
-      if (query) {
-        router.push(`/search?q=${query}`);
+      const trimmed = query.trim();
+      if (trimmed !== urlQ) {
+        if (trimmed) {
+          router.replace(`/search?q=${encodeURIComponent(trimmed)}`);
+        } else {
+          router.replace(`/search`);
+        }
       }
-    }, 500);
+    }, 300);
     return () => clearTimeout(debounceTimer);
-  }, [query, router]);
+  }, [query, pathname, urlQ, router]);
 
   const showSearchBar = pathname === "/search";
 
@@ -68,7 +84,7 @@ const Header = () => {
       className={clsx(
         "sticky top-0 z-50 h-16 px-6 flex items-center justify-between transition-all duration-400 ease-in-out",
         isScrolled
-          ? "bg-[#121212]/95 backdrop-blur-md shadow-lg"
+          ? "bg-black/40 backdrop-blur-xl border-b border-white/5 shadow-md"
           : "bg-transparent"
       )}
     >
@@ -97,7 +113,7 @@ const Header = () => {
             </div>
             <input
               type="text"
-              placeholder="What do you want to play?"
+              placeholder="搜索"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               className="w-full bg-[#242424] hover:bg-[#2a2a2a] focus:bg-[#242424] rounded-full py-3 pl-10 pr-4 text-sm text-white placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-white/20 transition-all border border-transparent focus:border-white/10"

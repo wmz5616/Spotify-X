@@ -209,7 +209,7 @@ export default function HistoryPage() {
                                     <p className="text-white font-medium truncate">{song.title}</p>
                                     <div className="text-neutral-400 text-sm truncate flex gap-1">
                                         {song.album?.artists && song.album.artists.length > 0 ? (
-                                            song.album.artists.map((artist, i) => (
+                                            song.album?.artists.map((artist, i) => (
                                                 <React.Fragment key={artist.id}>
                                                     <Link
                                                         href={`/artist/${encodeURIComponent(artist.name)}`}

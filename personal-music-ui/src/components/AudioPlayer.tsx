@@ -14,6 +14,7 @@ const AudioPlayer = () => {
   const { recordPlay } = useHistoryStore();
   const { isAuthenticated, settings } = useUserStore();
   const [streamToken, setStreamToken] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   const {
     currentSong,
@@ -106,6 +107,7 @@ const AudioPlayer = () => {
     
     // Reset token when song changes
     setStreamToken(null);
+    setRetryCount(0);
 
     if (!currentSong || !isAuthenticated) {
       return;
@@ -175,8 +177,20 @@ const AudioPlayer = () => {
       onEnded={handleSongEnd}
       onWaiting={() => setIsLoading(true)}
       onCanPlay={() => setIsLoading(false)}
-      onError={(e) => {
+      onError={async (e) => {
         console.error("Audio playback error:", e);
+        if (currentSong && retryCount < 1) {
+          setRetryCount((prev) => prev + 1);
+          try {
+            const data = await apiClient<{ token: string }>(`/api/songs/${currentSong.id}/stream-token`);
+            if (data?.token) {
+              setStreamToken(data.token);
+              return;
+            }
+          } catch (err) {
+            // ignore
+          }
+        }
         setIsLoading(false);
         usePlayerStore.setState({ isPlaying: false });
         addToast("播放失败，请检查网络或音频文件");

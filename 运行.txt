@@ -1,0 +1,7 @@
+##api
+cd personal-music-api
+npm run start:dev
+
+##ui
+cd personal-music-ui
+npm run dev

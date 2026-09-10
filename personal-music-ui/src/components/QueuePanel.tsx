@@ -49,7 +49,7 @@ export default function QueuePanel({ isOpen, onClose }: QueuePanelProps) {
                                 <div className="relative w-12 h-12 rounded overflow-hidden flex-shrink-0">
                                     {currentSong.album?.coverPath ? (
                                         <Image
-                                            src={getAuthenticatedSrc(currentSong.album.coverPath)}
+                                            src={getAuthenticatedSrc(currentSong.album.coverPath, 100)}
                                             alt={currentSong.title}
                                             fill
                                             className="object-cover"
@@ -66,7 +66,7 @@ export default function QueuePanel({ isOpen, onClose }: QueuePanelProps) {
                                         {currentSong.title}
                                     </p>
                                     <p className="text-neutral-400 text-xs truncate">
-                                        {currentSong.album?.artists?.[0]?.name || "未知艺术家"}
+                                        {currentSong.artist || currentSong.album?.artists?.[0]?.name || "未知艺术家"}
                                     </p>
                                 </div>
                             </div>
@@ -105,7 +105,7 @@ export default function QueuePanel({ isOpen, onClose }: QueuePanelProps) {
                                         <div className="relative w-10 h-10 rounded overflow-hidden flex-shrink-0">
                                             {song.album?.coverPath ? (
                                                 <Image
-                                                    src={getAuthenticatedSrc(song.album.coverPath)}
+                                                    src={getAuthenticatedSrc(song.album.coverPath, 100)}
                                                     alt={song.title}
                                                     fill
                                                     className="object-cover"
@@ -125,7 +125,7 @@ export default function QueuePanel({ isOpen, onClose }: QueuePanelProps) {
                                                 {song.title}
                                             </p>
                                             <p className="text-neutral-400 text-xs truncate">
-                                                {song.album?.artists?.[0]?.name || "未知艺术家"}
+                                                {song.artist || song.album?.artists?.[0]?.name || "未知艺术家"}
                                             </p>
                                         </div>
                                         <button

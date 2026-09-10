@@ -125,25 +125,46 @@ const NowPlayingView = () => {
                 />
                 <div>
                   <h3 className="font-bold text-white line-clamp-1">
-                    {cleanSongTitle(currentSong.title, album?.artists || currentSong.artist)}
+                    {cleanSongTitle(currentSong.title, currentSong.artist || album?.artists)}
                   </h3>
                   <div className="text-sm text-neutral-300 line-clamp-1">
-                    {album?.artists && Array.isArray(album.artists) ? (
-                      album.artists.map((artist, index) => (
-                        <React.Fragment key={artist.id}>
-                          <Link
-                            href={`/artist/${encodeURIComponent(artist.name)}`}
-                            className="hover:underline"
-                            onClick={toggleQueue}
-                          >
-                            {artist.name}
-                          </Link>
-                          {index < album.artists.length - 1 && ", "}
-                        </React.Fragment>
-                      ))
-                    ) : (
-                      <span>Unknown Artist</span>
-                    )}
+                    {(() => {
+                      const rawArtist = currentSong.artist?.trim();
+                      if (rawArtist) {
+                        const names = rawArtist.split(/\s*[/,&、]\s*/).filter(Boolean);
+                        if (names.length > 0) {
+                          return names.map((name, index) => (
+                            <React.Fragment key={name + index}>
+                              <Link
+                                href={`/artist/${encodeURIComponent(name)}`}
+                                className="hover:underline hover:text-white transition-colors"
+                                onClick={toggleQueue}
+                              >
+                                {name}
+                              </Link>
+                              {index < names.length - 1 && ", "}
+                            </React.Fragment>
+                          ));
+                        }
+                      }
+
+                      if (album?.artists && Array.isArray(album.artists)) {
+                        return album.artists.map((artist, index) => (
+                          <React.Fragment key={artist.id}>
+                            <Link
+                              href={`/artist/${encodeURIComponent(artist.name)}`}
+                              className="hover:underline hover:text-white transition-colors"
+                              onClick={toggleQueue}
+                            >
+                              {artist.name}
+                            </Link>
+                            {index < album.artists.length - 1 && ", "}
+                          </React.Fragment>
+                        ));
+                      }
+
+                      return <span>{currentSong.artist || "未知歌手"}</span>;
+                    })()}
                   </div>
                 </div>
               </div>

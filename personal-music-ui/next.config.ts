@@ -71,6 +71,36 @@ const nextConfig = {
         hostname: "resources.tidal.com",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "**.music.126.net",
+        pathname: "/**",
+      },
+      {
+        protocol: "http",
+        hostname: "**.music.126.net",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "**.126.net",
+        pathname: "/**",
+      },
+      {
+        protocol: "http",
+        hostname: "**.126.net",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "**.qq.com",
+        pathname: "/**",
+      },
+      {
+        protocol: "http",
+        hostname: "**.qq.com",
+        pathname: "/**",
+      },
     ],
   },
 };

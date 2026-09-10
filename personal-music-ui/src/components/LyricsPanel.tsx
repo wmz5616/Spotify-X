@@ -111,7 +111,7 @@ export default function LyricsPanel({ isOpen, onClose }: LyricsPanelProps) {
                                 <div className="relative w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 shadow-lg">
                                     {currentSong.album?.coverPath && !coverError ? (
                                         <Image
-                                            src={getAuthenticatedSrc(currentSong.album.coverPath)}
+                                            src={getAuthenticatedSrc(currentSong.album.coverPath, 150)}
                                             alt={currentSong.title}
                                             fill
                                             className="object-cover"
@@ -138,7 +138,11 @@ export default function LyricsPanel({ isOpen, onClose }: LyricsPanelProps) {
 
                     <div
                         ref={lyricsContainerRef}
-                        className="flex-1 overflow-y-auto px-6 py-8 scroll-smooth"
+                        className="flex-1 overflow-y-auto px-6 py-8 scroll-smooth no-scrollbar"
+                        style={{
+                            scrollbarWidth: "none",
+                            msOverflowStyle: "none",
+                        }}
                     >
                         {loading ? (
                             <div className="flex flex-col items-center justify-center h-full">

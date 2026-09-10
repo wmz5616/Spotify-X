@@ -61,7 +61,7 @@ model FeedPost {
   userId    Int
   content   String?
   type      String            @default("text")
-  targetId  Int?
+  targetId  BigInt?
   createdAt DateTime          @default(now())
   images    String?
   user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -136,12 +136,13 @@ model FollowedArtist {
 model PlayHistory {
   id        Int      @id @default(autoincrement())
   userId    Int
-  songId    Int
+  songId    BigInt
   playedAt  DateTime @default(now())
   duration  Float?
   completed Boolean  @default(false)
-  song      Song     @relation(fields: [songId], references: [id], onDelete: Cascade)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, playedAt])
 }
 
 model UserPlaylist {
@@ -201,7 +202,6 @@ model Song {
   duration          Float?
   lyrics            String?
   favoritedBy       FavoriteSong[]
-  playHistories     PlayHistory[]
   album             Album              @relation(fields: [albumId], references: [id])
   userPlaylistSongs UserPlaylistSong[]
   playlists         Playlist[]         @relation("PlaylistToSong")

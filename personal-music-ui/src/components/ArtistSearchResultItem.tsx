@@ -15,12 +15,16 @@ const ArtistSearchResultItem: React.FC<ArtistSearchResultItemProps> = ({
   artist,
 }) => {
   const imageUrl = artist.avatarUrl
-    ? getAuthenticatedSrc(artist.avatarUrl)
+    ? getAuthenticatedSrc(artist.avatarUrl, 300)
     : null;
+
+  const artistHref = artist.id
+    ? `/artist/${encodeURIComponent(artist.name)}?id=${artist.id}`
+    : `/artist/${encodeURIComponent(artist.name)}`;
 
   return (
     <Link
-      href={`/artist/${encodeURIComponent(artist.name)}`}
+      href={artistHref}
       className="group relative flex flex-col items-center gap-4 p-4 rounded-md bg-neutral-900/40 hover:bg-neutral-800 transition overflow-hidden"
     >
       <div className="relative w-32 h-32 rounded-full shadow-lg overflow-hidden bg-neutral-800 group-hover:scale-105 transition-transform duration-300">

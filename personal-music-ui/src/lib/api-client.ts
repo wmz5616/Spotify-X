@@ -14,16 +14,22 @@ interface FetchOptions extends Omit<RequestInit, "body"> {
 
 /**
  * @param path
+ * @param size Optional image thumbnail size in pixels (e.g. 100, 300, 600)
  */
-export function getAuthenticatedSrc(path?: string | null): string {
+export function getAuthenticatedSrc(path?: string | null, size?: number): string {
   if (!path || path === "null" || path === "undefined") return "";
   let cleanPath = path.trim();
 
   // 递归或正则清除意外拼装的 /public、public 前缀（例如 /publichttps://... 或 public/http://...）
   cleanPath = cleanPath.replace(/^(\/?public\/?)+(https?:\/\/)/i, "$2");
 
-  // 如果是在线外部图片直链，直接返回，不拼接本地后端路径
+  // 如果是在线外部图片直链
   if (cleanPath.startsWith("http://") || cleanPath.startsWith("https://")) {
+    // 针对网易云音乐等 CDN，支持动态缩略图参数（如 ?param=300y300），图片体积减少 90%+
+    if (size && (cleanPath.includes(".music.126.net") || cleanPath.includes(".126.net"))) {
+      const base = cleanPath.split("?")[0];
+      return `${base}?param=${size}y${size}`;
+    }
     return cleanPath;
   }
   if (!API_KEY) {
@@ -73,6 +79,9 @@ export function getStreamSrc(songId: number, token?: string, quality?: string): 
   return queryString ? `${url}?${queryString}` : url;
 }
 
+// Client-side in-memory cache for fast instant navigation
+const clientCache = new Map<string, { data: any; expiry: number }>();
+
 export async function apiClient<T>(
   endpoint: string,
   options: FetchOptions = {}
@@ -91,6 +100,17 @@ export async function apiClient<T>(
     const queryString = searchParams.toString();
     if (queryString) {
       url += `?${queryString}`;
+    }
+  }
+
+  // Client-side memory cache check for GET requests (excluding real-time search queries)
+  const isGet = !customConfig.method || customConfig.method.toUpperCase() === "GET";
+  const isSearch = url.includes("/api/search");
+  const shouldCache = typeof window !== "undefined" && isGet && !options.body && options.cache !== "no-store" && !isSearch;
+  if (shouldCache) {
+    const hit = clientCache.get(url);
+    if (hit && hit.expiry > Date.now()) {
+      return hit.data as T;
     }
   }
 
@@ -125,7 +145,21 @@ export async function apiClient<T>(
   }
 
   try {
-    const response = await fetch(url, config);
+    let response: Response;
+    try {
+      response = await fetch(url, config);
+    } catch (err: any) {
+      if (
+        typeof window === "undefined" &&
+        url.includes("localhost") &&
+        (err?.code === "ECONNREFUSED" || err?.cause?.code === "ECONNREFUSED")
+      ) {
+        const fallbackUrl = url.replace("localhost", "127.0.0.1");
+        response = await fetch(fallbackUrl, config);
+      } else {
+        throw err;
+      }
+    }
 
     if (!response.ok) {
       if (response.status === 401) {
@@ -140,7 +174,12 @@ export async function apiClient<T>(
 
     const text = await response.text();
     try {
-      return text ? JSON.parse(text) : (null as any as T);
+      const parsedData = text ? JSON.parse(text) : (null as any as T);
+      if (shouldCache && parsedData) {
+        // Cache for 3 minutes
+        clientCache.set(url, { data: parsedData, expiry: Date.now() + 180000 });
+      }
+      return parsedData;
     } catch (e) {
       return null as any as T;
     }

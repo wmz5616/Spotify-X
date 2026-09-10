@@ -40,9 +40,9 @@ const AlbumDetailPage = () => {
 
   const tParam = album?.title ? `&t=${encodeURIComponent(album.title)}` : "";
   const albumArtUrl = album?.coverPath
-    ? getAuthenticatedSrc(album.coverPath)
+    ? getAuthenticatedSrc(album.coverPath, 400)
     : id
-    ? `${API_BASE_URL}/api/covers/${id}?size=600&key=${API_KEY}${tParam}`
+    ? `${API_BASE_URL}/api/covers/${id}?size=400&key=${API_KEY}${tParam}`
     : "/placeholder.jpg";
 
   const { data: dominantColor } = useColor(albumArtUrl, "hex", {
@@ -70,18 +70,54 @@ const AlbumDetailPage = () => {
     fetchAlbumData();
   }, [id]);
 
-  const handlePlayAlbum = () => {
-    if (album?.songs && album.songs.length > 0) {
-      const queue = album.songs.map((song) => ({
+  const isCompilation = React.useMemo(() => {
+    if (!album?.songs || album.songs.length === 0) return false;
+    // Check if songs originate from different albums (compilation / chart / playlist)
+    return album.songs.some(
+      (s) => s.album && s.album.title && s.album.title !== album.title
+    );
+  }, [album]);
+
+  const queueWithAlbum = React.useMemo(() => {
+    if (!album?.songs) return [];
+    return album.songs.map((song) => {
+      // If the song already has its own specific album information (different from current compilation/chart album)
+      if (
+        song.album &&
+        song.album.title &&
+        (song.album.id !== album.id || song.album.title !== album.title)
+      ) {
+        return {
+          ...song,
+          album: {
+            ...song.album,
+            coverPath: song.album.coverPath || album.coverPath,
+            artists:
+              song.album.artists && song.album.artists.length > 0
+                ? song.album.artists
+                : song.artist
+                ? [{ id: Math.abs(song.id), name: song.artist }]
+                : album.artists,
+          },
+        };
+      }
+
+      // Single-artist or regular album fallback
+      return {
         ...song,
-        album: {
+        album: song.album || {
           id: album.id,
           title: album.title,
           artists: album.artists,
           coverPath: album.coverPath,
         },
-      }));
-      playSong(queue[0], queue);
+      };
+    });
+  }, [album]);
+
+  const handlePlayAlbum = () => {
+    if (queueWithAlbum.length > 0) {
+      playSong(queueWithAlbum[0], queueWithAlbum);
     }
   };
 
@@ -214,37 +250,15 @@ const AlbumDetailPage = () => {
         </div>
 
         <div className="flex flex-col">
-          {album.songs.map((song, index) => {
-            const songWithAlbum = {
-              ...song,
-              album: {
-                id: album.id,
-                title: album.title,
-                artists: album.artists,
-                coverPath: album.coverPath,
-              },
-            };
-
-            const queueWithAlbum = album.songs.map((s) => ({
-              ...s,
-              album: {
-                id: album.id,
-                title: album.title,
-                artists: album.artists,
-                coverPath: album.coverPath,
-              },
-            }));
-
-            return (
-              <SongRowItem
-                key={song.id}
-                song={songWithAlbum}
-                index={index}
-                queue={queueWithAlbum}
-                hideCover={true}
-              />
-            );
-          })}
+          {queueWithAlbum.map((songWithAlbum, index) => (
+            <SongRowItem
+              key={songWithAlbum.id}
+              song={songWithAlbum}
+              index={index}
+              queue={queueWithAlbum}
+              hideCover={!isCompilation}
+            />
+          ))}
         </div>
       </div>
     </div>

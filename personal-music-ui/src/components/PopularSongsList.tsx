@@ -9,8 +9,6 @@ import React from "react";
 import { getAuthenticatedSrc } from "@/lib/api-client";
 import Link from "next/link";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-
 const PopularSongsList = ({ songs }: { songs: Song[] }) => {
   const { playSong, togglePlayPause, currentSong, isPlaying } =
     usePlayerStore();
@@ -22,7 +20,7 @@ const PopularSongsList = ({ songs }: { songs: Song[] }) => {
 
         const getCoverUrl = (path: string | null | undefined) => {
           if (!path) return "/placeholder.jpg";
-          return getAuthenticatedSrc(path);
+          return getAuthenticatedSrc(path, 100);
         };
 
         const coverUrl = getCoverUrl(song.album?.coverPath);
@@ -85,27 +83,59 @@ const PopularSongsList = ({ songs }: { songs: Song[] }) => {
               >
                 {song.title}
               </div>
-              <div className="text-xs text-neutral-400 truncate flex gap-1">
-                {song.album?.artists && song.album.artists.length > 0 ? (
-                  song.album.artists.map((artist, i) => (
-                    <React.Fragment key={artist.id}>
-                      <Link
-                        href={`/artist/${encodeURIComponent(artist.name)}`}
-                        className="hover:underline hover:text-white transition-colors"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        {artist.name}
-                      </Link>
-                      {i < (song.album?.artists?.length || 0) - 1 && ", "}
-                    </React.Fragment>
-                  ))
-                ) : (
-                  <span>{song.album?.title}</span>
+              <div className="text-xs text-neutral-400 truncate flex gap-1 items-center">
+                {(() => {
+                  const rawArtist = song.artist?.trim();
+                  if (rawArtist) {
+                    const names = rawArtist.split(/\s*[/,&、]\s*/).filter(Boolean);
+                    if (names.length > 0) {
+                      return (
+                        <div className="flex truncate">
+                          {names.map((name, i) => (
+                            <React.Fragment key={name + i}>
+                              <Link
+                                href={`/artist/${encodeURIComponent(name)}`}
+                                className="hover:underline hover:text-white transition-colors"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {name}
+                              </Link>
+                              {i < names.length - 1 && ", "}
+                            </React.Fragment>
+                          ))}
+                        </div>
+                      );
+                    }
+                  }
+
+                  const albumArtists = song.album?.artists;
+                  if (albumArtists && albumArtists.length > 0) {
+                    return (
+                      <div className="flex truncate">
+                        {albumArtists.map((artist, i) => (
+                          <React.Fragment key={artist.id || i}>
+                            <Link
+                              href={artist.id ? `/artist/${encodeURIComponent(artist.name)}?id=${artist.id}` : `/artist/${encodeURIComponent(artist.name)}`}
+                              className="hover:underline hover:text-white transition-colors"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {artist.name}
+                            </Link>
+                            {i < albumArtists.length - 1 && ", "}
+                          </React.Fragment>
+                        ))}
+                      </div>
+                    );
+                  }
+
+                  return <span>{song.artist || "未知歌手"}</span>;
+                })()}
+                {song.album?.title && (
+                  <>
+                    <span className="mx-1 opacity-50">•</span>
+                    <span className="opacity-70 truncate">{song.album.title}</span>
+                  </>
                 )}
-                {song.album?.artists && song.album.artists.length > 0 && (
-                  <span className="mx-1 opacity-50">•</span>
-                )}
-                <span className="opacity-70">{song.album?.title}</span>
               </div>
             </div>
 
@@ -119,4 +149,4 @@ const PopularSongsList = ({ songs }: { songs: Song[] }) => {
   );
 };
 
-export default PopularSongsList;
+export default React.memo(PopularSongsList);

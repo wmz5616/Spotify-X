@@ -31,6 +31,5 @@ pnpm-debug.log*
 Thumbs.db
 .vscode/
 
-# 自动生成的图片资源
-public/artist-images
-public/covers
+# 自动生成的图片资源与上传文件
+public/

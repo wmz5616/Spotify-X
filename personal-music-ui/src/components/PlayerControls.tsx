@@ -78,7 +78,7 @@ const PlayerControls = () => {
   if (!currentSong) {
     return (
       <footer className="fixed bottom-0 z-50 w-full h-[90px] bg-black border-t border-[#282828] px-4 flex items-center justify-between">
-        <div className="text-[#a7a7a7] text-sm">Select a song to play</div>
+        <div className="text-[#a7a7a7] text-sm">选择一首要播放的歌曲</div>
       </footer>
     );
   }
@@ -86,10 +86,10 @@ const PlayerControls = () => {
   const albumData = currentSong.album as any;
   const tParam = albumData?.title ? `&t=${encodeURIComponent(albumData.title)}` : "";
   const albumArtUrl = albumData?.coverPath
-    ? getAuthenticatedSrc(albumData.coverPath)
+    ? getAuthenticatedSrc(albumData.coverPath, 150)
     : albumData?.id
-    ? getAuthenticatedSrc(`api/covers/${albumData.id}?size=128${tParam}`)
-    : "/placeholder.jpg";
+      ? getAuthenticatedSrc(`api/covers/${albumData.id}?size=128${tParam}`)
+      : "/placeholder.jpg";
 
   const renderRepeatIcon = () => {
     if (playMode === "repeat-one") return <Repeat1 size={16} />;
@@ -135,27 +135,48 @@ const PlayerControls = () => {
               href={albumData?.id ? `/album/${albumData.id}` : "#"}
               className="font-medium text-sm text-white hover:underline truncate cursor-pointer"
             >
-              {cleanSongTitle(currentSong.title, albumData?.artists || currentSong.artist)}
+              {cleanSongTitle(currentSong.title, currentSong.artist || albumData?.artists)}
             </Link>
             <div className="text-xs text-[#b3b3b3] truncate group">
-              {albumData?.artists ? (
+              {(() => {
+                const rawArtist = currentSong.artist?.trim();
+                if (rawArtist) {
+                  const names = rawArtist.split(/\s*[/,&、]\s*/).filter(Boolean);
+                  if (names.length > 0) {
+                    return names.map((name, i) => (
+                      <span key={name + i}>
+                        <Link
+                          href={`/artist/${encodeURIComponent(name)}`}
+                          className="hover:text-white hover:underline transition-colors"
+                        >
+                          {name}
+                        </Link>
+                        {i < names.length - 1 && ", "}
+                      </span>
+                    ));
+                  }
+                }
 
-                albumData.artists.map((artist: any, i: number) => (
-                  <span key={artist.id}>
-                    <Link
-                      href={`/artist/${encodeURIComponent(artist.name)}`}
-                      className="hover:text-white hover:underline transition-colors"
-                    >
-                      {artist.name}
-                    </Link>
-                    {i < albumData.artists.length - 1 && ", "}
+                if (albumData?.artists && albumData.artists.length > 0) {
+                  return albumData.artists.map((artist: any, i: number) => (
+                    <span key={artist.id || i}>
+                      <Link
+                        href={`/artist/${encodeURIComponent(artist.name)}`}
+                        className="hover:text-white hover:underline transition-colors"
+                      >
+                        {artist.name}
+                      </Link>
+                      {i < albumData.artists.length - 1 && ", "}
+                    </span>
+                  ));
+                }
+
+                return (
+                  <span className="hover:text-white cursor-pointer transition-colors">
+                    {currentSong.artist || "未知歌手"}
                   </span>
-                ))
-              ) : (
-                <span className="hover:text-white cursor-pointer transition-colors">
-                  {currentSong.artist || "Unknown Artist"}
-                </span>
-              )}
+                );
+              })()}
             </div>
           </div>
 

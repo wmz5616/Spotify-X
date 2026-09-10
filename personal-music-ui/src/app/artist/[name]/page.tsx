@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import Image from "next/image";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Play, AlertCircle, UserPlus, UserCheck, Check } from "lucide-react";
 import type { Song, Album, Artist } from "@/types";
 import AlbumCard from "@/components/AlbumCard";
@@ -43,6 +43,8 @@ const ArtistPageSkeleton = () => (
 const ArtistDetailPage = () => {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const artistId = searchParams.get("id");
   const name = decodeURIComponent(params.name as string);
   const [artist, setArtist] = useState<ArtistDetails | null>(null);
   const [scrollY, setScrollY] = useState(0);
@@ -51,6 +53,7 @@ const ArtistDetailPage = () => {
   const [headerImgError, setHeaderImgError] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
+  const [showAllPopular, setShowAllPopular] = useState(false);
 
   const { playSong } = usePlayerStore();
   const { followedArtistIds, toggleFollowArtist, initializeFavorites } = useFavoritesStore();
@@ -81,23 +84,31 @@ const ArtistDetailPage = () => {
   useEffect(() => {
     const mainContent = document.getElementById("main-content");
     if (!mainContent) return;
+    let rafId: number;
     const handleScroll = () => {
-      setScrollY(mainContent.scrollTop);
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        setScrollY(mainContent.scrollTop);
+      });
     };
-    mainContent.addEventListener("scroll", handleScroll);
+    mainContent.addEventListener("scroll", handleScroll, { passive: true });
     return () => {
+      cancelAnimationFrame(rafId);
       mainContent.removeEventListener("scroll", handleScroll);
     };
   }, []);
 
   useEffect(() => {
-    if (!name) return;
+    if (!name && !artistId) return;
     const getArtistDetails = async () => {
       try {
         setLoading(true);
         setError(null);
         setHeaderImgError(false);
-        const data = await apiClient<ArtistDetails>(`/api/artists/name/${encodeURIComponent(name)}`);
+        const endpoint = artistId
+          ? `/api/artists/${artistId}`
+          : `/api/artists/name/${encodeURIComponent(name)}`;
+        const data = await apiClient<ArtistDetails>(endpoint);
         setArtist(data);
       } catch (err) {
         console.error("Failed to fetch artist details:", err);
@@ -107,7 +118,50 @@ const ArtistDetailPage = () => {
       }
     };
     getArtistDetails();
-  }, [name]);
+  }, [name, artistId]);
+
+  const ALBUM_TRACK_THRESHOLD = 5;
+  const artistAlbums = useMemo(
+    () => (artist && Array.isArray(artist.albums) ? artist.albums : []),
+    [artist]
+  );
+  const studioAlbums = useMemo(
+    () =>
+      artistAlbums.filter(
+        (album) => (album._count?.songs ?? album.songs?.length ?? 0) > ALBUM_TRACK_THRESHOLD
+      ),
+    [artistAlbums]
+  );
+  const singlesAndEPs = useMemo(
+    () =>
+      artistAlbums.filter(
+        (album) => (album._count?.songs ?? album.songs?.length ?? 0) <= ALBUM_TRACK_THRESHOLD
+      ),
+    [artistAlbums]
+  );
+
+  const allPopularSongs: Song[] = useMemo(() => {
+    if (!artist) return [];
+    if ((artist as any).popularSongs && (artist as any).popularSongs.length > 0) {
+      return (artist as any).popularSongs;
+    }
+    return artistAlbums.flatMap((album) =>
+      (album.songs || []).map((song) => ({
+        ...song,
+        album: song.album || {
+          id: album.id,
+          title: album.title,
+          artists: album.artists,
+          coverPath: album.coverPath,
+        },
+      }))
+    );
+  }, [artist, artistAlbums]);
+
+  const popularSongs = useMemo(
+    () => (showAllPopular ? allPopularSongs.slice(0, 10) : allPopularSongs.slice(0, 5)),
+    [showAllPopular, allPopularSongs]
+  );
 
   if (loading) {
     return <ArtistPageSkeleton />;
@@ -131,41 +185,19 @@ const ArtistDetailPage = () => {
     );
   }
 
-  const ALBUM_TRACK_THRESHOLD = 5;
-  const studioAlbums = artist.albums.filter(
-    (album) => album.songs.length > ALBUM_TRACK_THRESHOLD
-  );
-  const singlesAndEPs = artist.albums.filter(
-    (album) => album.songs.length <= ALBUM_TRACK_THRESHOLD
-  );
-
-  const popularSongs = artist.albums
-    .flatMap((album) =>
-      album.songs.map((song) => ({
-        ...song,
-        album: {
-          id: album.id,
-          title: album.title,
-          artists: album.artists,
-          coverPath: album.coverPath,
-        },
-      }))
-    )
-    .slice(0, 5);
-
   const handlePlayArtist = () => {
-    if (popularSongs.length > 0) {
-      playSong(popularSongs[0] as Song, popularSongs as Song[]);
+    if (allPopularSongs.length > 0) {
+      playSong(allPopularSongs[0] as Song, allPopularSongs as Song[]);
     }
   };
 
-  const getFullUrl = (path: string | null | undefined) => {
+  const getFullUrl = (path: string | null | undefined, size?: number) => {
     if (!path) return null;
-    return getAuthenticatedSrc(path);
+    return getAuthenticatedSrc(path, size);
   };
 
-  const avatarUrl = getFullUrl(artist.avatarUrl);
-  const primaryHeader = !headerImgError && artist.headerUrl ? getFullUrl(artist.headerUrl) : null;
+  const avatarUrl = getFullUrl(artist.avatarUrl, 300);
+  const primaryHeader = !headerImgError && artist.headerUrl ? getFullUrl(artist.headerUrl, 1000) : null;
   const headerImageUrl = primaryHeader || avatarUrl;
 
   const headerTextOpacity = Math.max(0, 1 - scrollY / 150);
@@ -285,6 +317,14 @@ const ArtistDetailPage = () => {
         <section className="mb-12">
           <h2 className="text-2xl font-bold mb-6">流行</h2>
           <PopularSongsList songs={popularSongs} />
+          {allPopularSongs.length > 5 && (
+            <button
+              onClick={() => setShowAllPopular(!showAllPopular)}
+              className="mt-4 text-xs font-bold uppercase tracking-wider text-neutral-400 hover:text-white transition-colors"
+            >
+              {showAllPopular ? "显示更少" : "查看更多"}
+            </button>
+          )}
         </section>
 
         {artist.bio && artist.bioImageUrl && (
@@ -303,7 +343,7 @@ const ArtistDetailPage = () => {
                   key={album.id}
                   album={{
                     ...album,
-                    _count: { songs: album.songs.length },
+                    _count: { songs: album._count?.songs ?? album.songs?.length ?? 1 },
                   }}
                 />
               ))}
@@ -320,7 +360,7 @@ const ArtistDetailPage = () => {
                   key={album.id}
                   album={{
                     ...album,
-                    _count: { songs: album.songs.length },
+                    _count: { songs: album._count?.songs ?? album.songs?.length ?? 1 },
                   }}
                 />
               ))}

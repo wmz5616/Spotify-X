@@ -353,7 +353,7 @@ export default function DynamicTab({ feed, isLoading, onLike }: DynamicTabProps)
                                         </p>
                                         <div className="text-neutral-400 text-xs truncate mt-0.5 flex gap-1">
                                             {post.song.album?.artists && post.song.album.artists.length > 0 ? (
-                                                post.song.album.artists.map((artist: any, i: number) => (
+                                                post.song.album?.artists.map((artist: any, i: number) => (
                                                     <React.Fragment key={artist.id}>
                                                         <Link
                                                             href={`/artist/${encodeURIComponent(artist.name)}`}

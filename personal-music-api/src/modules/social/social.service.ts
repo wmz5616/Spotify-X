@@ -1,12 +1,16 @@
 import { Injectable, NotFoundException, ConflictException, Logger, BadRequestException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { OnlineMusicService } from '../music-library/online-music.service';
 import { CreateFeedPostDto } from './dto/social.dto';
 
 @Injectable()
 export class SocialService {
     private readonly logger = new Logger(SocialService.name);
 
-    constructor(private prisma: PrismaService) { }
+    constructor(
+        private prisma: PrismaService,
+        private onlineMusicService: OnlineMusicService,
+    ) { }
 
     async follow(followerId: number, followingId: number) {
         if (followerId === followingId) {
@@ -97,7 +101,10 @@ export class SocialService {
     }
 
     private async populateFeedPosts(posts: any[], currentUserId?: number) {
-        const songIds = posts.filter(p => p.type === 'song' && p.targetId).map(p => p.targetId as number);
+        const songIds = posts
+            .filter(p => p.type === 'song' && p.targetId != null)
+            .map(p => Number(p.targetId));
+
         let songMap = new Map();
         if (songIds.length > 0) {
             const songs = await this.prisma.song.findMany({
@@ -105,17 +112,36 @@ export class SocialService {
                 include: { album: { include: { artists: true } } }
             });
             songMap = new Map(songs.map(s => [s.id, s]));
+
+            const missingIds = songIds.filter(id => !songMap.has(id));
+            if (missingIds.length > 0) {
+                await Promise.all(
+                    missingIds.map(async (id) => {
+                        try {
+                            const onlineSong = await this.onlineMusicService.findSongById(id);
+                            if (onlineSong) {
+                                songMap.set(id, onlineSong);
+                            }
+                        } catch (e) {
+                            // ignore if online fetch fails
+                        }
+                    })
+                );
+            }
         }
 
         return posts.map(post => {
             const result: any = { ...post };
+            if (post.targetId != null) {
+                result.targetId = Number(post.targetId);
+            }
             if (post.images) {
                 try { result.images = JSON.parse(post.images); } catch(e) { result.images = []; }
             } else {
                 result.images = [];
             }
-            if (post.type === 'song' && post.targetId) {
-                result.song = songMap.get(post.targetId);
+            if (post.type === 'song' && post.targetId != null) {
+                result.song = songMap.get(Number(post.targetId));
             }
             if (currentUserId && post.likes) {
                 result.isLiked = post.likes.some((l: any) => l.userId === currentUserId);
@@ -126,15 +152,28 @@ export class SocialService {
     }
 
     async createFeedPost(userId: number, dto: CreateFeedPostDto) {
-        return this.prisma.feedPost.create({
+        const post = await this.prisma.feedPost.create({
             data: {
                 userId,
                 content: dto.content,
                 type: dto.type,
-                targetId: dto.targetId,
+                targetId: dto.targetId !== undefined && dto.targetId !== null ? (BigInt(dto.targetId) as any) : null,
                 images: dto.images && dto.images.length > 0 ? JSON.stringify(dto.images) : null,
             },
+            include: {
+                user: {
+                    select: {
+                        id: true,
+                        username: true,
+                        displayName: true,
+                        avatarPath: true,
+                        ipLocation: true,
+                    },
+                },
+            },
         });
+        const [populated] = await this.populateFeedPosts([post], userId);
+        return populated;
     }
 
     async getUserFeed(userId: number, currentUserId?: number) {

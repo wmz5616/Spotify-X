@@ -35,30 +35,59 @@ const SearchPage = () => {
   const [loading, setLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [filter, setFilter] = useState<FilterType>("all");
+  const [isScrolled, setIsScrolled] = useState(false);
 
   useEffect(() => {
+    const mainContent = document.getElementById("main-content");
+    if (!mainContent) return;
+
+    const handleScroll = () => {
+      setIsScrolled(mainContent.scrollTop > 10);
+    };
+
+    mainContent.addEventListener("scroll", handleScroll);
+    return () => {
+      mainContent.removeEventListener("scroll", handleScroll);
+    };
+  }, []);
+
+  useEffect(() => {
+    let isCurrent = true;
+
     const fetchResults = async () => {
-      if (!query) {
+      const q = query?.trim();
+      if (!q) {
         setResults({ albums: [], songs: [], artists: [], playlists: [] });
+        setLoading(false);
+        setHasSearched(false);
         return;
       }
 
       setLoading(true);
       try {
         const data = await apiClient<SearchResults>(
-          `/api/search?q=${encodeURIComponent(query)}`
+          `/api/search?q=${encodeURIComponent(q)}`
         );
-        setResults(data);
-        setHasSearched(true);
+        if (isCurrent && data) {
+          setResults(data);
+          setHasSearched(true);
+        }
       } catch (error) {
-        console.error("Search failed:", error);
+        if (isCurrent) {
+          console.error("Search failed:", error);
+        }
       } finally {
-        setLoading(false);
+        if (isCurrent) {
+          setLoading(false);
+        }
       }
     };
 
-    const timer = setTimeout(fetchResults, 300);
-    return () => clearTimeout(timer);
+    const timer = setTimeout(fetchResults, 150);
+    return () => {
+      isCurrent = false;
+      clearTimeout(timer);
+    };
   }, [query]);
 
   if (!query) {
@@ -67,8 +96,8 @@ const SearchPage = () => {
         <div className="w-20 h-20 bg-[#121212] rounded-full flex items-center justify-center mb-6">
           <SearchIcon size={40} />
         </div>
-        <h2 className="text-white text-2xl font-bold mb-2">Browse All</h2>
-        <p>Find your favorite songs, artists, and albums.</p>
+        <h2 className="text-white text-2xl font-bold mb-2">浏览全部内容</h2>
+        <p>找到你最喜欢的歌曲、歌手和专辑。</p>
       </div>
     );
   }
@@ -106,10 +135,10 @@ const SearchPage = () => {
     <button
       onClick={() => setFilter(type)}
       className={clsx(
-        "px-4 py-1.5 rounded-full text-sm font-bold transition-colors",
+        "px-4 py-1.5 rounded-full text-sm font-bold transition-all duration-200",
         filter === type
-          ? "bg-white text-black"
-          : "bg-[#2a2a2a] text-white hover:bg-[#3a3a3a]"
+          ? "bg-white text-black shadow-md scale-105"
+          : "bg-white/10 hover:bg-white/20 text-white backdrop-blur-md border border-white/5"
       )}
     >
       {label}
@@ -118,7 +147,14 @@ const SearchPage = () => {
 
   return (
     <div className="p-6 pb-32 min-h-screen">
-      <div className="flex gap-2 mb-6 sticky top-16 z-30 bg-[#121212]/95 backdrop-blur-md py-2 -mx-6 px-6">
+      <div
+        className={clsx(
+          "flex gap-2 mb-6 sticky top-16 z-30 py-2.5 -mx-6 px-6 transition-all duration-300",
+          isScrolled
+            ? "bg-black/40 backdrop-blur-xl border-b border-white/5 shadow-md"
+            : "bg-transparent"
+        )}
+      >
         <FilterButton type="all" label="All" />
         <FilterButton type="artists" label="Artists" />
         <FilterButton type="songs" label="Songs" />

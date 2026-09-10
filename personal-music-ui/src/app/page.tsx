@@ -1,8 +1,10 @@
 import AlbumCard from "@/components/AlbumCard";
 import QuickResumeCard from "@/components/QuickResumeCard";
 import WelcomeHeader from "@/components/WelcomeHeader";
+import FeaturedChartsSection from "@/components/FeaturedChartsSection";
 import { apiClient } from "@/lib/api-client";
 import { FadeInContainer, FadeInItem } from "@/components/FadeInStagger";
+import type { Song } from "@/types";
 
 type Album = {
   id: number;
@@ -17,19 +19,61 @@ type Album = {
   };
 };
 
+type ChartAlbum = {
+  id: number;
+  title: string;
+  coverPath?: string | null;
+  artists?: {
+    id: number;
+    name: string;
+  }[];
+  songs?: Song[];
+};
+
 const HomePage = async () => {
   let albums: Album[] = [];
   let randomAlbums: Album[] = [];
+  let hotChart: ChartAlbum | null = null;
+  let soarChart: ChartAlbum | null = null;
+  let billboardChart: ChartAlbum | null = null;
+  let koreaChart: ChartAlbum | null = null;
   let error: string | null = null;
 
   try {
-    const [albumsData, randomAlbumsData] = await Promise.all([
-      apiClient<Album[]>("/api/albums", { cache: "no-store" }),
-      apiClient<Album[]>("/api/albums/random?take=6", { cache: "no-store" }),
+    const [
+      albumsData,
+      randomAlbumsData,
+      hotChartData,
+      soarChartData,
+      billboardChartData,
+      koreaChartData,
+    ] = await Promise.all([
+      apiClient<Album[]>("/api/albums", { cache: "no-store" }).catch(() => []),
+      apiClient<Album[]>("/api/albums/random?take=6", { cache: "no-store" }).catch(() => []),
+      apiClient<ChartAlbum>("/api/albums/3778678", { cache: "no-store" }).catch((err) => {
+        console.error("Failed to fetch hot chart:", err);
+        return null;
+      }),
+      apiClient<ChartAlbum>("/api/albums/19723756", { cache: "no-store" }).catch((err) => {
+        console.error("Failed to fetch soar chart:", err);
+        return null;
+      }),
+      apiClient<ChartAlbum>("/api/albums/60198", { cache: "no-store" }).catch((err) => {
+        console.error("Failed to fetch billboard chart:", err);
+        return null;
+      }),
+      apiClient<ChartAlbum>("/api/albums/745956260", { cache: "no-store" }).catch((err) => {
+        console.error("Failed to fetch korea chart:", err);
+        return null;
+      }),
     ]);
 
-    albums = albumsData;
-    randomAlbums = randomAlbumsData;
+    albums = albumsData || [];
+    randomAlbums = randomAlbumsData || [];
+    hotChart = hotChartData;
+    soarChart = soarChartData;
+    billboardChart = billboardChartData;
+    koreaChart = koreaChartData;
   } catch (e) {
     console.error("Failed to fetch data for home page:", e);
     error = "无法连接到服务器或认证失败 (请检查 API Key)";
@@ -54,6 +98,14 @@ const HomePage = async () => {
             </FadeInContainer>
           </section>
         )}
+
+        {/* 官方热歌榜 / 飙升榜 / 美国公告榜 / 韩国榜精选 */}
+        <FeaturedChartsSection
+          hotChart={hotChart}
+          soarChart={soarChart}
+          billboardChart={billboardChart}
+          koreaChart={koreaChart}
+        />
 
         <section className="mb-12">
           <div className="flex items-center justify-between mb-6">

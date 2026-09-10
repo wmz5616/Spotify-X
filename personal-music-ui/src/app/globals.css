@@ -100,6 +100,26 @@ body {
   animation: breathe 2s infinite;
 }
 
+@keyframes musicBarWave {
+  0%, 100% {
+    height: 4px;
+  }
+  50% {
+    height: 14px;
+  }
+}
+
+.animate-bar-1 {
+  animation: musicBarWave 0.8s ease-in-out infinite;
+}
+.animate-bar-2 {
+  animation: musicBarWave 0.8s ease-in-out 0.2s infinite;
+}
+.animate-bar-3 {
+  animation: musicBarWave 0.8s ease-in-out 0.4s infinite;
+}
+
+
 .custom-scrollbar::-webkit-scrollbar {
   width: 8px;
 }

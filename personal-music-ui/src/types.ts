@@ -6,6 +6,7 @@ export type Artist = {
   avatarUrl?: string | null;
   headerUrl?: string | null;
   albums?: Album[];
+  popularSongs?: Song[];
   bio?: string | null;
   bioImageUrl?: string | null;
   avatarPosition?: string | null;

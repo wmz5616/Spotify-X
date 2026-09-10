@@ -1,33 +1,49 @@
 import { Injectable } from '@nestjs/common';
-import { randomUUID } from 'crypto';
+import { createHmac, randomUUID } from 'crypto';
 
 @Injectable()
 export class StreamingService {
   private tokens = new Map<string, { songId: number; expiresAt: number }>();
+  private readonly secret = process.env.JWT_SECRET || 'spotify-x-stream-secret-2026';
 
   /**
-   * Create a short-lived token for a song
+   * Create a signed stream token for a song (valid for 2 hours by default)
    * @param songId 
-   * @param ttlSeconds Default 60 seconds
+   * @param ttlSeconds Default 7200 seconds (2 hours)
    */
-  createToken(songId: number, ttlSeconds = 60): string {
-    const token = randomUUID();
+  createToken(songId: number, ttlSeconds = 7200): string {
     const expiresAt = Date.now() + ttlSeconds * 1000;
-    this.tokens.set(token, { songId, expiresAt });
-
-    setTimeout(() => {
-      this.tokens.delete(token);
-    }, ttlSeconds * 1000 + 5000);
-
+    const signature = createHmac('sha256', this.secret)
+      .update(`${songId}:${expiresAt}`)
+      .digest('hex');
+    const token = `${expiresAt}.${signature}`;
+    this.tokens.set(token, { songId: Number(songId), expiresAt });
     return token;
   }
 
   /**
-   * Validate and consume a token
+   * Validate a stream token (supports stateless HMAC and in-memory fallback)
    * @param token 
    * @param songId 
    */
   validateToken(token: string, songId: number): boolean {
+    if (!token) return false;
+
+    // 1. Try stateless HMAC validation (persistent across server restarts)
+    if (token.includes('.')) {
+      const [expiresAtStr, signature] = token.split('.');
+      const expiresAt = parseInt(expiresAtStr, 10);
+      if (!isNaN(expiresAt) && Date.now() <= expiresAt) {
+        const expectedSig = createHmac('sha256', this.secret)
+          .update(`${songId}:${expiresAt}`)
+          .digest('hex');
+        if (signature === expectedSig) {
+          return true;
+        }
+      }
+    }
+
+    // 2. Fallback to in-memory check (for legacy UUID tokens)
     const entry = this.tokens.get(token);
     if (!entry) return false;
 

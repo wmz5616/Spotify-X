@@ -101,7 +101,7 @@ const Sidebar = () => {
   return (
     <div
       className={clsx(
-        "hidden md:flex flex-col h-full bg-black p-2 gap-2 transition-all duration-300 ease-in-out z-40 transition-opacity duration-300",
+        "hidden md:flex flex-col h-full bg-black p-2 gap-2 transition-all duration-300 ease-in-out z-40",
         isSidebarCollapsed ? "w-[80px]" : "w-[300px]",
         !isHydrated && "opacity-0"
       )}
@@ -211,13 +211,13 @@ const Sidebar = () => {
 
               {artists.map((artist) => {
                 const avatarUrl = artist.avatarUrl
-                  ? getAuthenticatedSrc(artist.avatarUrl)
+                  ? getAuthenticatedSrc(artist.avatarUrl, 100)
                   : null;
 
                 return (
                   <Link
                     key={`artist-${artist.id}`}
-                    href={`/artist/${encodeURIComponent(artist.name)}`}
+                    href={artist.id ? `/artist/${encodeURIComponent(artist.name)}?id=${artist.id}` : `/artist/${encodeURIComponent(artist.name)}`}
                     className={clsx(
                       "flex items-center gap-x-3 p-2 rounded-md hover:bg-[#1f1f1f] cursor-pointer group transition",
                       pathname === `/artist/${encodeURIComponent(artist.name)}` &&

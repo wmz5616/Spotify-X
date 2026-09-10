@@ -14,9 +14,7 @@ import clsx from "clsx";
 import SongContextMenu from "./SongContextMenu";
 import LikeButton from "./LikeButton";
 
-import { apiClient, getAuthenticatedSrc } from "@/lib/api-client";
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+import { getAuthenticatedSrc } from "@/lib/api-client";
 
 interface SongRowItemProps {
   song: Song;
@@ -66,7 +64,7 @@ const SongRowItem = ({
 
   const getCoverUrl = (path: string | null | undefined) => {
     if (!path) return "/placeholder.jpg";
-    return getAuthenticatedSrc(path);
+    return getAuthenticatedSrc(path, 100);
   };
 
   const coverUrl = getCoverUrl(song.album?.coverPath);
@@ -135,28 +133,59 @@ const SongRowItem = ({
                 isCurrentSong ? "text-green-500" : "text-white"
               )}
             >
-              {cleanSongTitle(song.title, song.album?.artists || song.artist)}
+              {cleanSongTitle(song.title, song.artist || song.album?.artists)}
             </span>
             <div className="flex items-center gap-1 text-sm text-neutral-400 group-hover:text-white transition-colors truncate">
               <div className="flex truncate">
-                {song.album?.artists && song.album.artists.length > 0 ? (
-                  song.album.artists.map((artist, i) => (
-                    <React.Fragment key={artist.id}>
-                      <Link
-                        href={`/artist/${encodeURIComponent(artist.name)}`}
-                        className="hover:underline transition-colors"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        {artist.name}
-                      </Link>
-                      {i < (song.album?.artists?.length || 0) - 1 && (
-                        <span className="mr-1">,</span>
-                      )}
-                    </React.Fragment>
-                  ))
-                ) : (
-                  <span>{song.artist || "Unknown Artist"}</span>
-                )}
+                {(() => {
+                  const rawArtist = song.artist?.trim();
+                  if (rawArtist) {
+                    const names = rawArtist.split(/\s*[/,&、]\s*/).filter(Boolean);
+                    if (names.length > 0) {
+                      return names.map((name, i) => {
+                        const matchingArtist = song.album?.artists?.find(
+                          (a) => a.name.toLowerCase() === name.toLowerCase()
+                        );
+                        const href = matchingArtist?.id
+                          ? `/artist/${encodeURIComponent(matchingArtist.name)}?id=${matchingArtist.id}`
+                          : `/artist/${encodeURIComponent(name)}`;
+
+                        return (
+                          <React.Fragment key={name + i}>
+                            <Link
+                              href={href}
+                              className="hover:underline hover:text-white transition-colors"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {name}
+                            </Link>
+                            {i < names.length - 1 && <span className="mr-1">,</span>}
+                          </React.Fragment>
+                        );
+                      });
+                    }
+                  }
+
+                  const albumArtists = song.album?.artists;
+                  if (albumArtists && albumArtists.length > 0) {
+                    return albumArtists.map((artist, i) => (
+                      <React.Fragment key={artist.id || i}>
+                        <Link
+                          href={artist.id ? `/artist/${encodeURIComponent(artist.name)}?id=${artist.id}` : `/artist/${encodeURIComponent(artist.name)}`}
+                          className="hover:underline hover:text-white transition-colors"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {artist.name}
+                        </Link>
+                        {i < albumArtists.length - 1 && (
+                          <span className="mr-1">,</span>
+                        )}
+                      </React.Fragment>
+                    ));
+                  }
+
+                  return <span>{song.artist || "未知歌手"}</span>;
+                })()}
               </div>
             </div>
           </div>
@@ -189,4 +218,4 @@ const SongRowItem = ({
   );
 };
 
-export default SongRowItem;
+export default React.memo(SongRowItem);

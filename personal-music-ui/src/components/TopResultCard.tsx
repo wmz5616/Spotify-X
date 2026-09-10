@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import React, { useState } from "react";
-import { Play, LoaderCircle } from "lucide-react";
+import { Play, LoaderCircle, Mic2, Music } from "lucide-react";
 import { usePlayerStore } from "@/store/usePlayerStore";
 import type { Artist, Song, Album } from "@/types";
 import { apiClient, getAuthenticatedSrc } from "@/lib/api-client";
@@ -24,20 +24,20 @@ const TopResultCard = ({ result, type }: TopResultProps) => {
 
   const isArtist = type === "artist";
   const href = isArtist 
-    ? `/artist/${encodeURIComponent((result as Artist).name)}` 
+    ? (result.id ? `/artist/${encodeURIComponent((result as Artist).name)}?id=${result.id}` : `/artist/${encodeURIComponent((result as Artist).name)}`)
     : `/album/${result.id}`;
 
-  let imageUrl = "/placeholder.jpg";
+  let imageUrl = "";
 
   if (isArtist) {
     const artist = result as Artist;
     if (artist.avatarUrl) {
-      imageUrl = getAuthenticatedSrc(artist.avatarUrl);
+      imageUrl = getAuthenticatedSrc(artist.avatarUrl, 300);
     }
   } else {
     const album = result as Album;
     if (album.coverPath) {
-      imageUrl = getAuthenticatedSrc(album.coverPath);
+      imageUrl = getAuthenticatedSrc(album.coverPath, 300);
     }
   }
 
@@ -90,19 +90,25 @@ const TopResultCard = ({ result, type }: TopResultProps) => {
       <div className="relative">
         <div
           className={cn(
-            "relative w-24 h-24 shadow-lg mb-2 bg-[#282828]",
+            "relative w-24 h-24 shadow-lg mb-2 bg-[#282828] flex items-center justify-center",
             isArtist
               ? "rounded-full overflow-hidden"
               : "rounded-md overflow-hidden"
           )}
         >
-          <Image
-            src={imageUrl}
-            alt={displayName}
-            fill
-            className="object-cover"
-            unoptimized
-          />
+          {imageUrl ? (
+            <Image
+              src={imageUrl}
+              alt={displayName}
+              fill
+              className="object-cover"
+              unoptimized
+            />
+          ) : isArtist ? (
+            <Mic2 size={40} className="text-neutral-500" />
+          ) : (
+            <Music size={40} className="text-neutral-500" />
+          )}
         </div>
 
         <div className="absolute bottom-0 right-0 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 shadow-xl z-20">
@@ -137,7 +143,7 @@ const TopResultCard = ({ result, type }: TopResultProps) => {
               {(result as Album).artists.map((a, i) => (
                 <React.Fragment key={a.id}>
                   <Link
-                    href={`/artist/${encodeURIComponent(a.name)}`}
+                    href={a.id ? `/artist/${encodeURIComponent(a.name)}?id=${a.id}` : `/artist/${encodeURIComponent(a.name)}`}
                     className="hover:underline hover:text-white transition-colors"
                     onClick={(e) => e.stopPropagation()}
                   >
@@ -154,4 +160,4 @@ const TopResultCard = ({ result, type }: TopResultProps) => {
   );
 };
 
-export default TopResultCard;
+export default React.memo(TopResultCard);

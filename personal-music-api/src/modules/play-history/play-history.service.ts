@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { NotificationService } from '../notification/notification.service';
+import { OnlineMusicService } from '../music-library/online-music.service';
 
 @Injectable()
 export class PlayHistoryService {
@@ -9,7 +10,8 @@ export class PlayHistoryService {
 
     constructor(
         private prisma: PrismaService,
-        private notificationService: NotificationService
+        private notificationService: NotificationService,
+        private onlineMusicService: OnlineMusicService,
     ) { }
 
     @Cron('0 14 * * *')
@@ -54,21 +56,75 @@ export class PlayHistoryService {
         }
     }
 
+    private async populateHistorySongs(items: any[]) {
+        const songIds = items.map((h) => Number(h.songId));
+        let songMap = new Map();
+        if (songIds.length > 0) {
+            const localSongs = await this.prisma.song.findMany({
+                where: { id: { in: songIds } },
+                include: {
+                    album: {
+                        include: {
+                            artists: true,
+                        },
+                    },
+                },
+            });
+            for (const s of localSongs) {
+                songMap.set(s.id, s);
+            }
+
+            const missingIds = songIds.filter((id) => !songMap.has(id));
+            if (missingIds.length > 0) {
+                await Promise.all(
+                    missingIds.map(async (id) => {
+                        try {
+                            const onlineSong = await this.onlineMusicService.findSongById(id);
+                            if (onlineSong) {
+                                songMap.set(id, onlineSong);
+                            }
+                        } catch (e) {
+                            // ignore
+                        }
+                    }),
+                );
+            }
+        }
+
+        return items.map((h) => {
+            const song = songMap.get(Number(h.songId)) || {
+                id: Number(h.songId),
+                title: '未知歌曲',
+                artist: '未知歌手',
+                duration: h.duration || 0,
+            };
+            return {
+                ...song,
+                id: Number(h.songId),
+                playedAt: h.playedAt,
+                playDuration: h.duration,
+                completed: h.completed,
+                historyId: h.id,
+            };
+        });
+    }
+
     async recordPlay(
         userId: number,
         songId: number,
         duration?: number,
         completed?: boolean,
     ) {
+        const bSongId = BigInt(songId);
         const record = await this.prisma.$transaction(async (tx) => {
             await tx.playHistory.deleteMany({
-                where: { userId, songId },
+                where: { userId, songId: bSongId as any },
             });
 
             return tx.playHistory.create({
                 data: {
                     userId,
-                    songId,
+                    songId: bSongId as any,
                     duration,
                     completed: completed ?? false,
                 },
@@ -87,30 +143,22 @@ export class PlayHistoryService {
             });
 
             await this.prisma.playHistory.deleteMany({
-                where: { id: { in: toDelete.map(r => r.id) } },
+                where: { id: { in: toDelete.map((r) => r.id) } },
             });
 
             this.logger.log(`清理旧播放记录: userId=${userId}, deleted=${toDelete.length}`);
         }
 
-        return record;
+        return {
+            ...record,
+            songId: Number(record.songId),
+        };
     }
 
     async getHistory(userId: number, limit: number = 50, offset: number = 0) {
         const [history, total] = await Promise.all([
             this.prisma.playHistory.findMany({
                 where: { userId },
-                include: {
-                    song: {
-                        include: {
-                            album: {
-                                include: {
-                                    artists: true,
-                                },
-                            },
-                        },
-                    },
-                },
                 orderBy: { playedAt: 'desc' },
                 take: limit,
                 skip: offset,
@@ -118,13 +166,10 @@ export class PlayHistoryService {
             this.prisma.playHistory.count({ where: { userId } }),
         ]);
 
+        const items = await this.populateHistorySongs(history);
+
         return {
-            items: history.map((h) => ({
-                ...h.song,
-                playedAt: h.playedAt,
-                playDuration: h.duration,
-                completed: h.completed,
-            })),
+            items,
             total,
             limit,
             offset,
@@ -134,25 +179,11 @@ export class PlayHistoryService {
     async getRecentlyPlayed(userId: number, limit: number = 20) {
         const history = await this.prisma.playHistory.findMany({
             where: { userId },
-            include: {
-                song: {
-                    include: {
-                        album: {
-                            include: {
-                                artists: true,
-                            },
-                        },
-                    },
-                },
-            },
             orderBy: { playedAt: 'desc' },
             take: limit,
         });
 
-        return history.map((h) => ({
-            ...h.song,
-            playedAt: h.playedAt,
-        }));
+        return this.populateHistorySongs(history);
     }
 
     async clearHistory(userId: number) {

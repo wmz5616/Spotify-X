@@ -47,7 +47,7 @@ export interface FeedPost {
   userId: number;
   content: string | null;
   type: string;
-  targetId: number | null;
+  targetId: bigint | null;
   createdAt: Date;
   images: string | null;
   user?: User;
@@ -114,11 +114,10 @@ export interface FollowedArtist {
 export interface PlayHistory {
   id: number;
   userId: number;
-  songId: number;
+  songId: bigint;
   playedAt: Date;
   duration: number | null;
   completed: boolean;
-  song?: Song;
   user?: User;
 }
 
@@ -177,7 +176,6 @@ export interface Song {
   duration: number | null;
   lyrics: string | null;
   favoritedBy?: FavoriteSong[];
-  playHistories?: PlayHistory[];
   album?: Album;
   userPlaylistSongs?: UserPlaylistSong[];
   playlists?: Playlist[];
