@@ -2,6 +2,9 @@ import AlbumCard from "@/components/AlbumCard";
 import QuickResumeCard from "@/components/QuickResumeCard";
 import WelcomeHeader from "@/components/WelcomeHeader";
 import FeaturedChartsSection from "@/components/FeaturedChartsSection";
+import MobileCategoryPills from "@/components/MobileCategoryPills";
+import MobileHeroCarousel from "@/components/MobileHeroCarousel";
+import MobileExploreSection from "@/components/MobileExploreSection";
 import { apiClient } from "@/lib/api-client";
 import { FadeInContainer, FadeInItem } from "@/components/FadeInStagger";
 import type { Song } from "@/types";
@@ -81,15 +84,22 @@ const HomePage = async () => {
 
   return (
     <div
-      className="relative min-h-screen pt-4 pb-32"
+      className="relative min-h-screen pt-2 sm:pt-4 pb-28 sm:pb-32"
     >
 
-      <div className="relative z-10 px-6">
+      <div className="relative z-10 px-1 sm:px-4 md:px-6">
+        {/* 移动端横向分类胶囊栏 (对标截图：推荐、刷歌、视频...) */}
+        <MobileCategoryPills />
+
+        {/* 移动端首屏沉浸大卡片轮播 (对标截图：水蓝猜你喜欢、暖橙Daily 30...) */}
+        <MobileHeroCarousel hotSongs={hotChart?.songs || soarChart?.songs || []} />
+
         <WelcomeHeader />
 
+        {/* 桌面端保留 6 个快速恢复卡片，移动端由更轻量高级的 MobileHeroCarousel 承接 */}
         {randomAlbums.length > 0 && (
-          <section className="mb-10">
-            <FadeInContainer className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+          <section className="hidden md:block mb-8 sm:mb-10">
+            <FadeInContainer className="grid grid-cols-2 md:grid-cols-3 gap-2.5 sm:gap-4">
               {randomAlbums.map((album, index) => (
                 <FadeInItem key={album.id}>
                   <QuickResumeCard album={album} priority={index < 6} />
@@ -107,7 +117,14 @@ const HomePage = async () => {
           koreaChart={koreaChart}
         />
 
-        <section className="mb-12">
+        {/* 移动端专属：精选专辑与热门歌手横向流，打破死板，注入音乐探索活力 */}
+        <MobileExploreSection
+          albums={albums.length > 0 ? albums : randomAlbums}
+          hotSongs={hotChart?.songs || soarChart?.songs || []}
+        />
+
+        {/* 桌面端保留【所有专辑】，移动端移除 */}
+        <section className="hidden md:block mb-12">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold text-white tracking-tight">
               所有专辑

@@ -12,7 +12,8 @@ const AmbientBackground = () => {
     const coverUrl = rawCoverUrl ? getAuthenticatedSrc(rawCoverUrl) : null;
 
     return (
-        <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden select-none bg-[#121212]">
+        // 移动端严格禁用渐变背景，仅在桌面端夜间模式下生效
+        <div id="ambient-bg" className="hidden md:block fixed inset-0 z-0 pointer-events-none overflow-hidden select-none bg-[#121212]">
             <AnimatePresence mode="popLayout">
                 {coverUrl ? (
                     <motion.div

@@ -70,13 +70,13 @@ const QuickResumeCard = ({ album, priority = false }: { album: AlbumForResume, p
   return (
     <Link
       href={`/album/${album.id}`}
-      className={`group relative flex items-center h-16 md:h-20 rounded-lg overflow-hidden transition-all duration-300 pr-4 hover:-translate-y-1 backdrop-blur-md border select-none ${
+      className={`group relative flex items-center h-12 sm:h-16 md:h-20 rounded-xl overflow-hidden transition-all duration-300 pr-2 sm:pr-4 hover:-translate-y-0.5 border select-none ${
         isCurrentPlaying
-          ? "bg-white/[0.12] border-green-500/40 shadow-[0_6px_24px_rgba(34,197,94,0.16),inset_0_1px_0_rgba(255,255,255,0.2)]"
-          : "bg-white/[0.06] hover:bg-white/[0.14] border-white/10 hover:border-white/25 shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] hover:shadow-2xl hover:shadow-black/50"
+          ? "bg-green-500/10 border-green-500/40 shadow-sm"
+          : "bg-white text-neutral-900 border-neutral-200/80 hover:bg-neutral-50 shadow-sm dark:bg-[#1c1c1e] dark:text-white dark:border-white/5 dark:hover:bg-[#252528]"
       }`}
     >
-      <div className="relative h-full aspect-square flex-shrink-0 shadow-lg mr-3 md:mr-4 overflow-hidden bg-neutral-800">
+      <div className="relative h-full aspect-square flex-shrink-0 shadow-sm mr-2.5 sm:mr-3 md:mr-4 overflow-hidden bg-neutral-100 dark:bg-neutral-800">
         <Image
           src={coverUrl}
           alt={album.title}
@@ -96,10 +96,12 @@ const QuickResumeCard = ({ album, priority = false }: { album: AlbumForResume, p
         )}
       </div>
 
-      <div className="flex flex-col justify-center flex-grow pr-10 overflow-hidden">
+      <div className="flex flex-col justify-center flex-grow pr-6 sm:pr-10 overflow-hidden">
         <span
-          className={`font-bold text-sm md:text-base line-clamp-2 transition-colors ${
-            isCurrentPlaying ? "text-green-400" : "text-white group-hover:text-white"
+          className={`font-semibold text-xs sm:text-sm md:text-base line-clamp-2 transition-colors ${
+            isCurrentPlaying
+              ? "text-green-500 font-bold"
+              : "text-neutral-900 dark:text-white group-hover:text-green-500"
           }`}
         >
           {album.title}
@@ -107,7 +109,7 @@ const QuickResumeCard = ({ album, priority = false }: { album: AlbumForResume, p
       </div>
 
       <div
-        className={`absolute right-3 md:right-4 z-20 transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${
+        className={`absolute right-1.5 sm:right-3 md:right-4 z-20 transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${
           isCurrentPlaying
             ? "opacity-100 translate-y-0 scale-100"
             : "opacity-0 translate-y-2 scale-85 group-hover:opacity-100 group-hover:translate-y-0 group-hover:scale-100"
@@ -117,16 +119,16 @@ const QuickResumeCard = ({ album, priority = false }: { album: AlbumForResume, p
           onClick={handlePlayClick}
           disabled={isLoading}
           aria-label={isCurrentPlaying ? "暂停" : "播放"}
-          className="w-10 h-10 md:w-11 md:h-11 bg-green-500 hover:bg-green-400 active:scale-95 text-black rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(34,197,94,0.45)] hover:shadow-[0_8px_25px_rgba(34,197,94,0.7)] transition-all cursor-pointer"
+          className="w-7 h-7 sm:w-10 sm:h-10 md:w-11 md:h-11 bg-green-500 hover:bg-green-400 active:scale-95 text-black rounded-full flex items-center justify-center shadow-md transition-all cursor-pointer"
         >
           {isLoading ? (
-            <LoaderCircle size={20} className="text-black animate-spin" />
+            <LoaderCircle size={14} className="text-black animate-spin sm:w-5 sm:h-5" />
           ) : isCurrentPlaying ? (
-            <Pause size={20} className="text-black" fill="black" />
+            <Pause size={14} className="text-black sm:w-5 sm:h-5" fill="black" />
           ) : (
             <Play
-              size={20}
-              className="text-black translate-x-0.5"
+              size={14}
+              className="text-black sm:w-5 sm:h-5 translate-x-0.5"
               fill="black"
             />
           )}

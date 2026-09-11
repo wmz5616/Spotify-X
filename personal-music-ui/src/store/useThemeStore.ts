@@ -6,6 +6,7 @@ export type ThemeMode = "dark" | "light" | "system" | "black" | "modern";
 interface ThemeState {
     mode: ThemeMode;
     setMode: (mode: ThemeMode) => void;
+    toggleTheme: () => void;
     initializeTheme: (initialMode?: ThemeMode) => void;
 }
 
@@ -35,6 +36,13 @@ export const useThemeStore = create<ThemeState>()(
             setMode: (mode: ThemeMode) => {
                 applyTheme(mode);
                 set({ mode });
+            },
+
+            toggleTheme: () => {
+                const currentMode = get().mode;
+                const nextMode = currentMode === "light" ? "dark" : "light";
+                applyTheme(nextMode);
+                set({ mode: nextMode });
             },
 
             initializeTheme: (initialMode?: ThemeMode) => {

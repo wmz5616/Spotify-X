@@ -88,42 +88,42 @@ export default function UserMenu() {
             <div className="relative" ref={menuRef}>
                 <button
                     onClick={() => setIsOpen(!isOpen)}
-                    className="flex items-center gap-2 bg-black/40 p-1 pr-3 rounded-full hover:bg-neutral-800 transition border border-transparent hover:border-neutral-700/50 group"
-                    title={getDisplayName()}
+                    className={isAuthenticated
+                        ? "flex items-center gap-2 bg-black/40 p-1 pr-1 md:pr-3 rounded-full hover:bg-neutral-800 transition border border-white/5 hover:border-white/10 group active:scale-95"
+                        : "flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-neutral-200 text-black font-bold text-xs rounded-full shadow-sm active:scale-95 transition-all cursor-pointer"
+                    }
+                    title={isAuthenticated ? getDisplayName() : "点击登录"}
                 >
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden border border-black/20 shadow-sm relative z-10">
-                        {isAuthenticated && getAvatarUrl() ? (
-                            <Image
-                                src={getAvatarUrl()!}
-                                alt="用户头像"
-                                width={32}
-                                height={32}
-                                className="object-cover w-full h-full"
-                                style={{ objectPosition: (user as any)?.avatarPosition || "50% 50%" }}
-                            />
-                        ) : isAuthenticated ? (
-                            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-green-500 to-green-700">
-                                <span className="font-bold text-xs text-black">
-                                    {getInitial()}
-                                </span>
+                    {isAuthenticated ? (
+                        <>
+                            <div className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden border border-black/20 shadow-sm relative z-10 bg-neutral-800">
+                                {getAvatarUrl() ? (
+                                    <Image
+                                        src={getAvatarUrl()!}
+                                        alt="用户头像"
+                                        width={32}
+                                        height={32}
+                                        className="object-cover w-full h-full"
+                                        style={{ objectPosition: (user as any)?.avatarPosition || "50% 50%" }}
+                                    />
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-green-500 to-green-700">
+                                        <span className="font-bold text-xs text-black">
+                                            {getInitial()}
+                                        </span>
+                                    </div>
+                                )}
                             </div>
-                        ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-neutral-600 to-neutral-800">
-                                <User size={16} className="text-neutral-300" />
-                            </div>
-                        )}
-                    </div>
 
-                    {isAuthenticated && (
-                        <span className="text-sm font-bold text-white max-w-[100px] truncate hidden md:block group-hover:text-white/90">
-                            {getDisplayName()}
-                        </span>
-                    )}
-
-                    {!isAuthenticated && (
-                        <span className="text-sm font-bold text-neutral-300 hidden md:block">
-                            未登录
-                        </span>
+                            <span className="text-sm font-bold text-white max-w-[100px] truncate hidden md:block group-hover:text-white/90">
+                                {getDisplayName()}
+                            </span>
+                        </>
+                    ) : (
+                        <>
+                            <User size={14} className="text-black" />
+                            <span>登录</span>
+                        </>
                     )}
                 </button>
 
@@ -134,7 +134,7 @@ export default function UserMenu() {
                             animate={{ opacity: 1, y: 0, scale: 1 }}
                             exit={{ opacity: 0, y: -10, scale: 0.95 }}
                             transition={{ duration: 0.15 }}
-                            className="absolute right-0 top-12 w-56 bg-neutral-800 rounded-lg shadow-xl border border-neutral-700 overflow-hidden z-50"
+                            className="absolute right-0 top-11 sm:top-12 w-52 sm:w-56 max-w-[calc(100vw-24px)] bg-[#1e1e22] rounded-xl shadow-2xl border border-white/10 overflow-hidden z-50"
                         >
                             {isAuthenticated ? (
                                 <>
@@ -257,6 +257,17 @@ export default function UserMenu() {
                                         <User size={18} />
                                         <span>注册账户</span>
                                     </button>
+
+                                    <div className="border-t border-neutral-700 mt-1 pt-1">
+                                        <Link
+                                            href="/settings"
+                                            onClick={() => setIsOpen(false)}
+                                            className="flex items-center gap-3 px-4 py-2.5 text-neutral-300 hover:text-white hover:bg-neutral-700/50 transition"
+                                        >
+                                            <Settings size={18} />
+                                            <span>设置</span>
+                                        </Link>
+                                    </div>
                                 </div>
                             )}
                         </motion.div>

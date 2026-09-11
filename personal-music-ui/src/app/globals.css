@@ -45,13 +45,46 @@
   --accent-color: #1db954;
 }
 
+/* 全局隐藏原生滚动条与视口滑块 */
+.no-scrollbar::-webkit-scrollbar,
+.scrollbar-hide::-webkit-scrollbar,
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.no-scrollbar,
+.scrollbar-hide {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
 html,
 body {
   height: 100%;
-  overflow: hidden;
+  width: 100%;
+  max-width: 100vw;
+  overflow: hidden !important;
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
   background-color: var(--bg-primary);
   color: var(--text-primary);
   transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* 针对移动端视口 (<= 768px)：彻底杜绝原生上下/左右滑块条出现 */
+@media (max-width: 768px) {
+  ::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+  * {
+    -ms-overflow-style: none !important;
+    scrollbar-width: none !important;
+  }
 }
 
 .bg-primary {
@@ -186,9 +219,189 @@ body {
   -webkit-text-fill-color: transparent;
 }
 
-.light .lyric-highlight {
+.light .lyric-highlight,
+[data-theme='light'] .lyric-highlight {
   background: linear-gradient(90deg, #000, #555);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
+
+/* 昼夜切换 - 日间模式（Light Mode）全局智能转换规则 */
+html.light,
+html[data-theme='light'],
+html.light body,
+html[data-theme='light'] body {
+  background-color: #f7f8fa !important;
+  color: #1a1a1c !important;
+}
+
+/* 背景适配 */
+html.light .bg-black {
+  background-color: #f7f8fa !important;
+}
+
+html.light .bg-\[\#121212\],
+html.light .bg-\[\#121212\]\/95,
+html.light .bg-\[\#121212\]\/90 {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+}
+
+html.light .bg-\[\#181818\],
+html.light .bg-\[\#18181a\],
+html.light .bg-\[\#141416\],
+html.light .bg-\[\#1a1a1a\],
+html.light .bg-\[\#1c1d22\],
+html.light .bg-\[\#202022\],
+html.light .bg-\[\#202020\],
+html.light .bg-\[\#242426\],
+html.light .bg-\[\#252528\] {
+  background-color: #ffffff !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04), 0 2px 8px rgba(0, 0, 0, 0.02) !important;
+  border-color: rgba(0, 0, 0, 0.07) !important;
+}
+
+html.light .bg-\[\#282828\],
+html.light .bg-\[\#2e2e32\],
+html.light .bg-\[\#242428\],
+html.light .bg-\[\#1f1f22\] {
+  background-color: #f0f2f5 !important;
+  color: #1a1a1c !important;
+}
+
+html.light .hover\:bg-\[\#202024\]:hover,
+html.light .hover\:bg-\[\#282828\]:hover,
+html.light .hover\:bg-\[\#28282b\]:hover,
+html.light .hover\:bg-\[\#262626\]:hover,
+html.light .hover\:bg-\[\#2e2e32\]:hover {
+  background-color: #e9ecef !important;
+}
+
+/* 文字适配 (仅适配未显式指定深色容器的通用灰色文本，绝不强制覆盖 text-white) */
+html.light .text-neutral-200,
+html.light .text-neutral-300 {
+  color: #374151 !important;
+}
+
+html.light .text-neutral-400 {
+  color: #6b7280 !important;
+}
+
+html.light .text-neutral-500 {
+  color: #88909b !important;
+}
+
+/* 保护深色背景容器中的白色文本与图标在日间模式下依然纯白清晰 */
+html.light .bg-neutral-900,
+html.light .bg-neutral-800,
+html.light .bg-black,
+html.light [class*="bg-neutral-900"],
+html.light [class*="bg-neutral-800"] {
+  color: #ffffff;
+}
+
+.text-white-pure {
+  color: #ffffff !important;
+  fill: #ffffff !important;
+}
+
+/* 边框适配 */
+html.light .border-white\/5,
+html.light .border-white\/10,
+html.light .border-white\/20,
+html.light .border-white\/\[0\.08\] {
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+html.light .divide-white\/5 > :not([hidden]) ~ :not([hidden]) {
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+/* 顶部 Header 和底部 MobileNavBar 适配 */
+html.light header {
+  background-color: rgba(255, 255, 255, 0.94) !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+html.light nav {
+  background-color: rgba(255, 255, 255, 0.96) !important;
+  border-top: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+/* 输入框在日间模式下的高质感适配 (保留 focus 状态微交互，绝不暴力覆盖) */
+html.light input:not(:focus) {
+  background-color: #f2f4f7;
+  color: #111827;
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+html.light input:focus {
+  background-color: #ffffff !important;
+  color: #111827;
+  border-color: rgba(0, 0, 0, 0.15);
+}
+
+html.light input::placeholder {
+  color: #9ca3af;
+}
+
+/* 侧边栏与桌面端微调 */
+html.light aside {
+  background-color: #ffffff !important;
+  border-right-color: rgba(0, 0, 0, 0.06) !important;
+}
+
+/* 移动端强约束：移动端只能存在纯白或纯黑，严禁任何渐变色 */
+@media (max-width: 768px) {
+  /* 移动端日间模式：极简淡雅柔和底色，立体衬托纯白悬浮卡片 */
+  html.light,
+  html.light body,
+  html[data-theme='light'],
+  html[data-theme='light'] body,
+  html.light #main-content,
+  html[data-theme='light'] #main-content,
+  html.light main {
+    background-color: #f8f9fa !important;
+    background-image: none !important;
+  }
+
+  /* 移动端夜间模式：纯黑 */
+  html:not(.light),
+  html:not(.light) body,
+  html[data-theme='dark'],
+  html[data-theme='dark'] body,
+  html:not(.light) #main-content,
+  html:not(.light) main {
+    background-color: #121212 !important;
+    background-image: none !important;
+  }
+
+  /* 严禁移动端渲染任何背景渐变 */
+  #ambient-bg,
+  .ambient-bg,
+  div[class*="bg-gradient-"] {
+    background-image: none !important;
+  }
+
+  /* 移动端日间模式下所有卡片纯白 */
+  html.light .bg-\[\#181818\],
+  html.light .bg-\[\#18181a\],
+  html.light .bg-\[\#141416\],
+  html.light .bg-\[\#1a1a1a\],
+  html.light .bg-\[\#202022\],
+  html.light .bg-\[\#252528\],
+  html.light .bg-\[\#242426\] {
+    background-color: #ffffff !important;
+    background-image: none !important;
+    border-color: #e5e7eb !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+  }
+
+  /* 移动端日间模式下快速恢复卡片纯白无渐变 */
+  html.light a[href*="/album/"] {
+    background-color: #ffffff !important;
+    background-image: none !important;
+    border-color: #e5e7eb !important;
+  }
+}
+

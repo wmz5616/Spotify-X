@@ -590,7 +590,7 @@ export class MusicLibraryController {
     // 2. Otherwise, resolve from online streaming service!
     const onlineUrl = await this.onlineMusicService.resolveStreamUrl(id);
     if (onlineUrl) {
-      return this.streamRemoteUrl(onlineUrl, request, response);
+      return this.streamRemoteUrl(onlineUrl, request, response, id);
     }
 
     throw new NotFoundException('Audio stream not available for this song');
@@ -655,7 +655,7 @@ export class MusicLibraryController {
     file.pipe(response);
   }
 
-  private streamRemoteUrl(url: string, request: Request, response: Response) {
+  private streamRemoteUrl(url: string, request: Request, response: Response, songId?: number, retryCount = 0) {
     const mod = url.startsWith('https') ? https : http;
     const clientHeaders: Record<string, string> = {
       'User-Agent': 'okhttp/3.10.0',
@@ -664,9 +664,28 @@ export class MusicLibraryController {
       clientHeaders['Range'] = request.headers.range as string;
     }
 
-    const req = mod.get(url, { headers: clientHeaders }, (remoteRes) => {
+    const req = mod.get(url, { headers: clientHeaders }, async (remoteRes) => {
       if (remoteRes.statusCode && remoteRes.statusCode >= 300 && remoteRes.statusCode < 400 && remoteRes.headers.location) {
-        return this.streamRemoteUrl(remoteRes.headers.location, request, response);
+        return this.streamRemoteUrl(remoteRes.headers.location, request, response, songId, retryCount);
+      }
+
+      // 如果上游返回 4xx 或 5xx 错误（例如 403 Forbidden 临时签名过期），自动清理缓存并重试一次全新解析
+      if (remoteRes.statusCode && remoteRes.statusCode >= 400) {
+        this.logger.warn(`Remote audio stream returned status ${remoteRes.statusCode} for song ${songId}, url: ${url}`);
+        if (songId) {
+          this.onlineMusicService.clearStreamCache(songId);
+        }
+        if (songId && retryCount < 1) {
+          const freshUrl = await this.onlineMusicService.resolveStreamUrl(songId, true);
+          if (freshUrl && freshUrl !== url) {
+            this.logger.log(`Retrying remote audio stream with fresh URL for song ${songId}`);
+            return this.streamRemoteUrl(freshUrl, request, response, songId, retryCount + 1);
+          }
+        }
+        if (!response.headersSent) {
+          return response.status(remoteRes.statusCode || 404).send('Audio stream error from upstream');
+        }
+        return;
       }
 
       const statusCode = remoteRes.statusCode || 200;
@@ -690,6 +709,9 @@ export class MusicLibraryController {
 
     req.on('error', (err) => {
       this.logger.error(`Remote audio stream error for ${url}:`, err);
+      if (songId) {
+        this.onlineMusicService.clearStreamCache(songId);
+      }
       if (!response.headersSent) {
         response.sendStatus(HttpStatus.INTERNAL_SERVER_ERROR);
       }

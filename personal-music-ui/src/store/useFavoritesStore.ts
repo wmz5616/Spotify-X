@@ -33,7 +33,20 @@ export const useFavoritesStore = create<FavoritesState>((set, get) => ({
 
     initializeFavorites: async () => {
         const token = useUserStore.getState().token;
-        if (!token) return;
+        if (!token) {
+            if (typeof window !== "undefined") {
+                try {
+                    const saved = localStorage.getItem("spotify_guest_favorites");
+                    if (saved) {
+                        const ids = JSON.parse(saved);
+                        if (Array.isArray(ids)) {
+                            set({ favoriteSongIds: new Set(ids), isInitialized: true });
+                        }
+                    }
+                } catch { }
+            }
+            return;
+        }
 
         set({ isLoading: true });
         try {
@@ -60,19 +73,27 @@ export const useFavoritesStore = create<FavoritesState>((set, get) => ({
 
     toggleFavoriteSong: async (songId: number) => {
         const token = useUserStore.getState().token;
-        if (!token) return false;
-
-        set({ isMutating: true });
         const { favoriteSongIds } = get();
         const isFavorited = favoriteSongIds.has(songId);
-
         const newSet = new Set(favoriteSongIds);
+
         if (isFavorited) {
             newSet.delete(songId);
         } else {
             newSet.add(songId);
         }
         set({ favoriteSongIds: newSet });
+
+        if (!token) {
+            if (typeof window !== "undefined") {
+                try {
+                    localStorage.setItem("spotify_guest_favorites", JSON.stringify(Array.from(newSet)));
+                } catch { }
+            }
+            return !isFavorited;
+        }
+
+        set({ isMutating: true });
 
         try {
             const response = await fetch(`${API_BASE_URL}/api/favorites/songs/${songId}`, {

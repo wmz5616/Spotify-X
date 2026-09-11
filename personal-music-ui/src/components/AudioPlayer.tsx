@@ -38,15 +38,23 @@ const AudioPlayer = () => {
     }
   }, [currentSong, isAuthenticated, recordPlay]);
 
+  const streamUrl = useMemo(() => {
+    if (!currentSong) return undefined;
+    return getStreamSrc(currentSong.id, streamToken || undefined, settings?.audioQuality);
+  }, [currentSong?.id, streamToken, settings?.audioQuality]);
+
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio || !currentSong) return;
 
     if (isPlaying) {
+      if (!audio.src || audio.src === window.location.href || !streamUrl) {
+        return;
+      }
       const playPromise = audio.play();
       if (playPromise !== undefined) {
         playPromise.catch((error) => {
-          if (error.name !== "AbortError") {
+          if (error.name !== "AbortError" && error.name !== "NotSupportedError") {
             console.warn("Playback prevented:", error);
             usePlayerStore.setState({ isPlaying: false });
             if (error.name === "NotAllowedError") {
@@ -58,7 +66,7 @@ const AudioPlayer = () => {
     } else {
       audio.pause();
     }
-  }, [isPlaying, currentSong, addToast]);
+  }, [isPlaying, currentSong, streamUrl, addToast]);
 
   useEffect(() => {
     if (audioRef.current) {
@@ -131,13 +139,6 @@ const AudioPlayer = () => {
     };
   }, [currentSong?.id, isAuthenticated]);
 
-  const streamUrl = useMemo(() => {
-    if (!currentSong) return undefined;
-    // 如果已登录，务必等待 token 准备好，避免产生无效请求或 401
-    if (isAuthenticated && !streamToken) return undefined;
-    return getStreamSrc(currentSong.id, streamToken || undefined, settings?.audioQuality);
-  }, [currentSong?.id, streamToken, settings?.audioQuality, isAuthenticated]);
-
   if (!currentSong) return null;
 
   return (
@@ -167,7 +168,7 @@ const AudioPlayer = () => {
         setIsLoading(false);
         if (isPlaying) {
           e.currentTarget.play().catch((error) => {
-            if (error.name !== "AbortError") {
+            if (error.name !== "AbortError" && error.name !== "NotSupportedError") {
               console.warn("Autoplay failed:", error);
               usePlayerStore.setState({ isPlaying: false });
             }
@@ -178,7 +179,11 @@ const AudioPlayer = () => {
       onWaiting={() => setIsLoading(true)}
       onCanPlay={() => setIsLoading(false)}
       onError={async (e) => {
-        console.error("Audio playback error:", e);
+        const audio = audioRef.current;
+        if (!audio?.src || audio.src === window.location.href || !streamUrl) {
+          return;
+        }
+        console.warn("Audio playback error:", e);
         if (currentSong && retryCount < 1) {
           setRetryCount((prev) => prev + 1);
           try {

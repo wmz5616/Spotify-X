@@ -96,7 +96,7 @@ const SearchPage = () => {
         <div className="w-20 h-20 bg-[#121212] rounded-full flex items-center justify-center mb-6">
           <SearchIcon size={40} />
         </div>
-        <h2 className="text-white text-2xl font-bold mb-2">浏览全部内容</h2>
+        <h2 className="text-neutral-900 dark:text-white text-2xl font-bold mb-2">浏览全部内容</h2>
         <p>找到你最喜欢的歌曲、歌手和专辑。</p>
       </div>
     );
@@ -112,7 +112,7 @@ const SearchPage = () => {
     return (
       <div className="flex flex-col items-center justify-center h-[50vh] text-neutral-400">
         <AlertCircle size={48} className="mb-4" />
-        <h2 className="text-white text-xl font-bold">
+        <h2 className="text-neutral-900 dark:text-white text-xl font-bold">
           No results found for &quot;{query}&quot;
         </h2>
         <p>Please check your spelling or use different keywords.</p>

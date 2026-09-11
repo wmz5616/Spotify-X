@@ -50,11 +50,11 @@ const WelcomeHeader = () => {
   }, [user]);
 
   if (!mounted) {
-    return <div className="h-[88px] mb-8" />;
+    return <div className="hidden md:block h-[88px] mb-8" />;
   }
 
   return (
-    <div className="mb-8 mt-2">
+    <div className="hidden md:block mb-8 mt-2">
       <motion.h1
         initial={{
           opacity: 0,

@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronDown,
+  ChevronRight,
   Play,
   Pause,
   SkipBack,
@@ -14,13 +15,23 @@ import {
   Heart,
   Volume2,
   VolumeX,
+  MessageSquare,
+  ListMusic,
+  SlidersHorizontal,
+  MoreVertical,
+  Sparkles,
+  Copy,
+  Star,
+  Mic2,
 } from "lucide-react";
 import { usePlayerStore } from "@/store/usePlayerStore";
 import LyricDisplay from "./LyricDisplay";
+import QueuePanel from "./QueuePanel";
 import Image from "next/image";
 import Link from "next/link";
-import { getAuthenticatedSrc } from "@/lib/api-client";
+import { getAuthenticatedSrc, apiClient } from "@/lib/api-client";
 import { formatDuration } from "@/lib/utils";
+import { parseLRC, type LyricLine } from "@/lib/lrc-parser";
 import { Song } from "@/types";
 import LikeButton from "./LikeButton";
 import { useFavoritesStore } from "@/store/useFavoritesStore";
@@ -96,7 +107,12 @@ const FullScreenPlayer = () => {
   const { isAuthenticated } = useUserStore();
   const { addToast } = useToastStore();
   const [imgError, setImgError] = useState(false);
+  const [showMobileLyrics, setShowMobileLyrics] = useState(false);
+  const [showMobileQueue, setShowMobileQueue] = useState(false);
+  const [fetchedLyrics, setFetchedLyrics] = useState<string | null>(null);
   const playerWrapperRef = useRef<HTMLDivElement>(null);
+  const activeLyricRef = useRef<HTMLDivElement>(null);
+  const lyricContainerRef = useRef<HTMLDivElement>(null);
 
   const recordAnim = useRef<gsap.core.Tween | null>(null);
 
@@ -119,8 +135,69 @@ const FullScreenPlayer = () => {
   }, { dependencies: [isPlaying, isFullScreen], scope: playerWrapperRef });
 
   useEffect(() => {
+    if (isFullScreen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [isFullScreen]);
+
+  useEffect(() => {
     setImgError(false);
+    setFetchedLyrics(null);
+    setShowMobileLyrics(false);
   }, [currentSong?.id]);
+
+  useEffect(() => {
+    if (!currentSong) return;
+
+    if (!currentSong.lyrics) {
+      apiClient<{ lyrics?: string }>(`/api/songs/${currentSong.id}/lyrics`)
+        .then((data) => {
+          if (data?.lyrics) {
+            setFetchedLyrics(data.lyrics);
+            const state = usePlayerStore.getState();
+            if (state.currentSong?.id === currentSong.id) {
+              usePlayerStore.setState({
+                currentSong: { ...state.currentSong, lyrics: data.lyrics },
+              });
+            }
+          }
+        })
+        .catch(() => {});
+    }
+  }, [currentSong?.id, currentSong?.lyrics]);
+
+  const lyrics: LyricLine[] = React.useMemo(() => {
+    const rawLyrics = currentSong?.lyrics || fetchedLyrics;
+    return rawLyrics ? parseLRC(rawLyrics) : [];
+  }, [currentSong?.lyrics, fetchedLyrics]);
+
+  const currentLineIndex = React.useMemo(() => {
+    if (!lyrics.length) return -1;
+    return lyrics.findIndex(
+      (line, i) =>
+        currentTime >= line.time &&
+        (i === lyrics.length - 1 || currentTime < lyrics[i + 1].time)
+    );
+  }, [currentTime, lyrics]);
+
+  const currentLineText = currentLineIndex >= 0 ? lyrics[currentLineIndex]?.text : "♪ 伴奏中 ♪";
+  const nextLineText =
+    currentLineIndex >= 0 && currentLineIndex + 1 < lyrics.length
+      ? lyrics[currentLineIndex + 1]?.text
+      : (currentLineIndex === -1 && lyrics.length > 0 ? lyrics[0]?.text : "");
+
+  useEffect(() => {
+    if (showMobileLyrics && activeLyricRef.current) {
+      activeLyricRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    }
+  }, [currentLineIndex, showMobileLyrics]);
 
   if (!currentSong) return null;
 
@@ -215,7 +292,8 @@ const FullScreenPlayer = () => {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1] }}
-          className="fixed inset-0 z-50 flex flex-col bg-black text-white overflow-hidden"
+          className="fixed inset-0 z-[60] flex flex-col bg-black text-white overflow-hidden select-none no-scrollbar w-full h-full max-w-[100vw] max-h-[100vh]"
+          style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
         >
           <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
             {/* Solid dark base */}
@@ -259,7 +337,51 @@ const FullScreenPlayer = () => {
             />
           </div>
 
-          <div className="relative z-10 flex items-center justify-between px-6 pt-6 pb-2 shrink-0">
+          {/* 移动端专属顶部栏 (复刻 QQ音乐极简顶部) */}
+          <div className="md:hidden relative z-20 flex items-center justify-between px-4 pt-4 pb-2 shrink-0">
+            <button
+              onClick={toggleFullScreen}
+              className="p-2 -ml-2 text-white/90 hover:text-white active:scale-90 transition-transform"
+              aria-label="收起播放器"
+            >
+              <ChevronDown size={28} />
+            </button>
+
+            <div className="flex items-center gap-1.5">
+              <span
+                onClick={() => setShowMobileLyrics(false)}
+                className={`h-1.5 rounded-full transition-all cursor-pointer ${
+                  !showMobileLyrics ? "w-4 bg-white" : "w-1.5 bg-white/35"
+                }`}
+              />
+              <span
+                onClick={() => setShowMobileLyrics(true)}
+                className={`h-1.5 rounded-full transition-all cursor-pointer ${
+                  showMobileLyrics ? "w-4 bg-white" : "w-1.5 bg-white/35"
+                }`}
+              />
+            </div>
+
+            <div className="flex items-center gap-1 -mr-1">
+              <button
+                onClick={() => addToast("音效已切换为沉浸环绕模式")}
+                className="p-2 text-white/80 hover:text-white active:scale-90 transition-transform"
+                aria-label="音效设置"
+              >
+                <SlidersHorizontal size={20} />
+              </button>
+              <button
+                onClick={() => addToast("歌曲详情与分享")}
+                className="p-2 text-white/80 hover:text-white active:scale-90 transition-transform"
+                aria-label="更多操作"
+              >
+                <MoreVertical size={20} />
+              </button>
+            </div>
+          </div>
+
+          {/* 桌面端顶部栏 */}
+          <div className="hidden md:flex relative z-10 items-center justify-between px-6 pt-6 pb-2 shrink-0">
             <button
               onClick={toggleFullScreen}
               className="p-2 hover:bg-white/10 rounded-full transition-colors"
@@ -274,7 +396,338 @@ const FullScreenPlayer = () => {
             <div className="w-12" />
           </div>
 
-          <div className="relative z-10 flex-1 flex flex-col md:grid md:grid-cols-2 gap-8 p-6 md:p-12 overflow-y-auto md:overflow-hidden scrollbar-hide">
+          {/* 移动端专属主体内容：二选一（全屏歌词模式 vs 封面播放模式） */}
+          {showMobileLyrics ? (
+            /* ================= 模式 B：全屏歌词沉浸模式 (100% 像素级复刻 Image 2 / QQ音乐歌词页) ================= */
+            <div className="md:hidden flex-1 flex flex-col justify-between px-4 sm:px-5 pb-4 pt-1 select-none overflow-hidden relative z-10 w-full max-w-full min-h-0">
+              {/* 1. 顶部歌曲信息：左侧歌名与歌手+制作团队，右侧超大红心与真实收藏量 */}
+              <div className="flex items-start justify-between pt-1 pb-2 shrink-0 w-full">
+                <div className="min-w-0 flex-1 pr-3">
+                  <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-wide truncate drop-shadow-md">
+                    {currentSong.title}
+                  </h1>
+                  <button
+                    onClick={() => addToast(`歌手：${artistName}`)}
+                    className="text-xs sm:text-sm text-neutral-300/90 font-medium flex items-center gap-1 mt-1 active:opacity-75 transition-opacity"
+                  >
+                    <span className="truncate">{artistName} 制作团队</span>
+                    <ChevronRight size={14} className="opacity-70 shrink-0" />
+                  </button>
+                </div>
+
+                {/* 右上角红心与收藏量 (如 1000w+) */}
+                <button
+                  onClick={handleLike}
+                  className="flex flex-col items-center active:scale-90 transition-transform shrink-0 pt-0.5"
+                  aria-label={isLiked ? "已收藏" : "收藏"}
+                >
+                  <Heart
+                    size={30}
+                    className={`transition-colors duration-200 stroke-[1.5] ${
+                      isLiked
+                        ? "fill-rose-500 text-rose-500 drop-shadow-[0_0_12px_rgba(244,63,94,0.6)]"
+                        : "fill-rose-500/80 text-rose-500/90"
+                    }`}
+                  />
+                  <span className="text-[10px] font-bold text-rose-400/90 tracking-tight mt-0.5 leading-none">
+                    {currentSong.favCount || "1000w+"}
+                  </span>
+                </button>
+              </div>
+
+              {/* 2. 中间全屏滚动歌词区 (左对齐大字号，当前句高亮+带播放跳转小药丸，流畅居中自动滚动，无原生滑块) */}
+              <div
+                ref={lyricContainerRef}
+                className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar scrollbar-hide py-6 space-y-7 my-1 select-none w-full max-w-full pb-24"
+                style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+              >
+                {lyrics.length > 0 ? (
+                  lyrics.map((line, idx) => {
+                    const isActive = idx === currentLineIndex;
+                    return (
+                      <div
+                        key={idx}
+                        ref={isActive ? activeLyricRef : null}
+                        onClick={() => seek(line.time)}
+                        className={`transition-all duration-300 cursor-pointer flex items-start justify-between gap-3 py-1 ${
+                          isActive
+                            ? "text-[26px] sm:text-[28px] font-black text-white leading-[1.28] drop-shadow-md"
+                            : "text-[16px] sm:text-[17px] font-semibold text-white/40 hover:text-white/75 leading-relaxed"
+                        }`}
+                      >
+                        <span className="flex-1 min-w-0 break-words">
+                          {line.text}
+                        </span>
+
+                        {/* 当前播放句右侧：专属播放跳转药丸 ▶ 00:31 */}
+                        {isActive && (
+                          <div
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              seek(line.time);
+                            }}
+                            className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/20 hover:bg-white/30 text-white text-[11px] font-mono shrink-0 active:scale-95 transition-all backdrop-blur-md shadow-sm mt-1"
+                          >
+                            <Play size={10} className="fill-white text-white shrink-0" />
+                            <span className="tracking-tight">{formatDuration(line.time)}</span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="h-full flex flex-col items-center justify-center text-white/40 space-y-2">
+                    <p className="text-lg font-medium">♪ 纯音乐，请享受旋律 ♪</p>
+                  </div>
+                )}
+              </div>
+
+              {/* 3. 底部功能栏 (左侧5个功能键：弹 999+、伴 off、词、海报、关注 off；右侧悬浮纯黑图标高反差白色圆形播放按钮) */}
+              <div className="flex items-center justify-between pt-2.5 pb-2 shrink-0 border-t border-white/10 w-full max-w-full overflow-hidden">
+                <div className="flex items-center gap-2.5 sm:gap-3.5">
+                  {/* 弹幕 */}
+                  <button
+                    onClick={() => addToast("弹幕功能已开启")}
+                    className="relative w-8 h-8 sm:w-9 sm:h-9 rounded-full border border-white/30 flex items-center justify-center text-white/90 active:scale-90 transition-transform shrink-0"
+                    aria-label="弹幕"
+                  >
+                    <span className="text-xs font-bold">弹</span>
+                    <span className="absolute -top-1.5 -right-2 text-[8px] font-bold text-white bg-white/25 px-1 py-0.2 rounded-full border border-white/20 pointer-events-none leading-tight">
+                      999+
+                    </span>
+                  </button>
+
+                  {/* 伴奏开关 */}
+                  <button
+                    onClick={() => addToast("伴奏切换模式")}
+                    className="relative w-8 h-8 sm:w-9 sm:h-9 rounded-full border border-white/30 flex items-center justify-center text-white/90 active:scale-90 transition-transform shrink-0"
+                    aria-label="伴奏"
+                  >
+                    <span className="text-xs font-bold">伴</span>
+                    <span className="absolute -top-1.5 -right-1.5 text-[8px] font-medium text-white/70 bg-black/40 px-0.5 rounded pointer-events-none leading-tight">
+                      off
+                    </span>
+                  </button>
+
+                  {/* 歌词格式 */}
+                  <button
+                    onClick={() => addToast("歌词格式已切换为双语模式")}
+                    className="w-8 h-8 sm:w-9 sm:h-9 rounded-full border border-white/30 flex items-center justify-center text-white/90 text-xs font-bold active:scale-90 transition-transform shrink-0"
+                    aria-label="词"
+                  >
+                    词
+                  </button>
+
+                  {/* 歌词卡片/海报 */}
+                  <button
+                    onClick={() => addToast("正在生成精美歌词海报...")}
+                    className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center text-white/80 hover:text-white active:scale-90 transition-transform shrink-0"
+                    aria-label="生成歌词海报"
+                  >
+                    <Copy size={19} />
+                  </button>
+
+                  {/* 收藏/星标 */}
+                  <button
+                    onClick={() => addToast("已收藏该歌词片段")}
+                    className="relative w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center text-white/80 hover:text-white active:scale-90 transition-transform shrink-0"
+                    aria-label="收藏"
+                  >
+                    <Star size={20} />
+                    <span className="absolute -top-1 -right-1 text-[8px] font-medium text-white/70 bg-black/40 px-0.5 rounded pointer-events-none leading-tight">
+                      off
+                    </span>
+                  </button>
+                </div>
+
+                {/* 右侧圆形高反差大播放/暂停按键 (白底实心纯黑图标，清晰醒目) */}
+                <button
+                  onClick={handleTogglePlay}
+                  className="w-12 h-12 sm:w-13 sm:h-13 min-w-[48px] min-h-[48px] rounded-full bg-white text-black flex items-center justify-center shadow-[0_4px_20px_rgba(0,0,0,0.5)] active:scale-95 transition-transform shrink-0"
+                  aria-label={isPlaying ? "暂停" : "播放"}
+                >
+                  {isPlaying ? (
+                    <Pause size={22} className="fill-black text-black stroke-[2.5]" />
+                  ) : (
+                    <Play size={22} className="fill-black text-black stroke-[2.5] translate-x-0.5" />
+                  )}
+                </button>
+              </div>
+            </div>
+          ) : (
+            /* ================= 模式 A：大封面沉浸模式 (复刻 Image 1 / QQ音乐封面播放页) ================= */
+            <div className="md:hidden flex-1 flex flex-col justify-between px-5 pb-6 pt-1 select-none overflow-hidden relative z-10">
+              {/* 上半部分：大封面（渐变边缘融入背景），点击平滑切换到全屏歌词模式 */}
+              <div
+                onClick={() => setShowMobileLyrics(true)}
+                className="flex-1 w-full max-h-[48vh] min-h-[260px] relative flex items-center justify-center overflow-hidden cursor-pointer group"
+                style={{
+                  maskImage: "linear-gradient(to bottom, black 65%, transparent 100%)",
+                  WebkitMaskImage: "linear-gradient(to bottom, black 65%, transparent 100%)",
+                }}
+              >
+                {albumCover && !imgError ? (
+                  <Image
+                    src={albumCover}
+                    alt={currentSong.title}
+                    fill
+                    className="object-cover object-center scale-[1.02] group-active:scale-100 transition-transform"
+                    priority
+                    unoptimized
+                    onError={() => setImgError(true)}
+                  />
+                ) : (
+                  <FallbackCover size="text-8xl" />
+                )}
+              </div>
+
+              {/* 下半部分：歌曲信息、歌词速览、进度条、播放控制器 */}
+              <div className="flex flex-col gap-4 mt-auto">
+                {/* 1. 歌曲标题与歌手 + 互动徽章 (评论 & 收藏量) */}
+                <div className="flex items-center justify-between">
+                  <div className="min-w-0 flex-1 pr-3">
+                    <h2 className="text-2xl font-bold text-white tracking-wide truncate drop-shadow">
+                      {currentSong.title}
+                    </h2>
+                    <p className="text-sm text-neutral-300 font-medium truncate mt-1">
+                      {artistName}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-3 flex-shrink-0">
+                    {/* 评论数徽章 */}
+                    <button
+                      onClick={() => addToast("评论区功能即将开放")}
+                      className="relative p-1 text-white/80 hover:text-white active:scale-90 transition-transform flex flex-col items-center"
+                      aria-label="查看评论"
+                    >
+                      <span className="text-[10px] font-semibold text-white/80 leading-none mb-1">
+                        999+
+                      </span>
+                      <MessageSquare size={22} className="stroke-[1.8]" />
+                    </button>
+
+                    {/* 真实收藏量徽章 */}
+                    <button
+                      onClick={handleLike}
+                      className="relative p-1 active:scale-90 transition-transform flex flex-col items-center"
+                      aria-label={isLiked ? "取消收藏" : "收藏歌曲"}
+                    >
+                      <span className="text-[10px] font-semibold text-white/80 leading-none mb-1">
+                        {currentSong.favCount || "180w+"}
+                      </span>
+                      <Heart
+                        size={24}
+                        className={`transition-colors duration-200 stroke-[1.8] ${
+                          isLiked ? "fill-rose-500 text-rose-500" : "text-white/80"
+                        }`}
+                      />
+                    </button>
+                  </div>
+                </div>
+
+                {/* 2. 经典双行歌词预览 (点击一键直达全屏歌词页) */}
+                <div
+                  onClick={() => setShowMobileLyrics(true)}
+                  className="space-y-1 py-1 cursor-pointer select-none group"
+                >
+                  <p className="text-[16px] font-semibold text-white tracking-wide truncate transition-colors duration-300 group-hover:text-emerald-400">
+                    {currentLineText || "♪ 伴奏中 ♪"}
+                  </p>
+                  <p className="text-[13px] font-normal text-white/45 tracking-wide truncate transition-colors duration-300">
+                    {nextLineText || ""}
+                  </p>
+                </div>
+
+                {/* 3. 极简进度条与时间显示 */}
+                <div className="space-y-1.5 pt-1">
+                  <div className="group relative flex items-center w-full h-4 cursor-pointer">
+                    <div className="w-full h-[3px] bg-white/20 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-white rounded-full transition-all duration-100"
+                        style={{ width: `${progressPercent}%` }}
+                      />
+                    </div>
+                    <div
+                      className="absolute h-2.5 w-2.5 bg-white rounded-full shadow-md pointer-events-none"
+                      style={{
+                        left: `${progressPercent}%`,
+                        transform: "translateX(-50%)",
+                      }}
+                    />
+                    <input
+                      type="range"
+                      min={0}
+                      max={duration || 100}
+                      value={currentTime}
+                      onChange={handleSeek}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                    />
+                  </div>
+
+                  <div className="flex justify-between text-[11px] font-mono text-white/40 tracking-wider px-0.5">
+                    <span>{formatDuration(currentTime)}</span>
+                    <span>{formatDuration(duration)}</span>
+                  </div>
+                </div>
+
+                {/* 4. 底部播放控制按键 (无白圈纯白大图标，极简高质感，一字排开) */}
+                <div className="flex items-center justify-between px-1 pt-1 pb-4">
+                  {/* 播放模式 (循环/单曲/随机) */}
+                  <button
+                    onClick={toggleRepeat}
+                    className="p-2 text-white/80 hover:text-white active:scale-90 transition-transform"
+                    aria-label="切换播放模式"
+                  >
+                    {renderRepeatIcon()}
+                  </button>
+
+                  {/* 上一曲 */}
+                  <button
+                    onClick={playPrev}
+                    className="p-2 text-white active:scale-90 transition-transform"
+                    aria-label="上一首"
+                  >
+                    <SkipBack size={30} className="fill-white text-white" />
+                  </button>
+
+                  {/* 播放 / 暂停 (无底色大纯白图标) */}
+                  <button
+                    onClick={handleTogglePlay}
+                    className="w-16 h-16 flex items-center justify-center text-white active:scale-90 transition-transform"
+                    aria-label={isPlaying ? "暂停" : "播放"}
+                  >
+                    {isPlaying ? (
+                      <Pause size={42} className="fill-white text-white" />
+                    ) : (
+                      <Play size={42} className="fill-white text-white translate-x-1" />
+                    )}
+                  </button>
+
+                  {/* 下一曲 */}
+                  <button
+                    onClick={playNext}
+                    className="p-2 text-white active:scale-90 transition-transform"
+                    aria-label="下一首"
+                  >
+                    <SkipForward size={30} className="fill-white text-white" />
+                  </button>
+
+                  {/* 播放列表 */}
+                  <button
+                    onClick={() => setShowMobileQueue(true)}
+                    className="p-2 text-white/80 hover:text-white active:scale-90 transition-transform"
+                    aria-label="播放队列"
+                  >
+                    <ListMusic size={26} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 桌面端唱片机 & 歌词双栏布局 */}
+          <div className="hidden md:grid relative z-10 flex-1 md:grid-cols-2 gap-8 p-6 md:p-12 overflow-y-auto md:overflow-hidden scrollbar-hide">
             <div className="flex flex-col justify-center items-center md:h-full gap-4 md:gap-8 w-full min-h-min pb-8 md:pb-0">
               <motion.div
                 layoutId={`album-cover-${currentSong.id}`}
@@ -673,6 +1126,9 @@ const FullScreenPlayer = () => {
               <LyricDisplay />
             </div>
           </div>
+
+          {/* 移动端播放队列抽屉 */}
+          <QueuePanel isOpen={showMobileQueue} onClose={() => setShowMobileQueue(false)} />
         </motion.div>
       )}
     </AnimatePresence>

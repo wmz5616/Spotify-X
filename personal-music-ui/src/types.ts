@@ -32,6 +32,8 @@ export type Song = {
   trackNumber: number | null;
   duration?: number;
   lyrics?: string | null;
+  favCount?: string;
+  tag?: string;
   album?: {
     id: number;
     title: string;

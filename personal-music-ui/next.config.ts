@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  devIndicators: false,
   images: {
     unoptimized: true,
     remotePatterns: [
@@ -97,8 +98,13 @@ const nextConfig = {
         pathname: "/**",
       },
       {
+        protocol: "https",
+        hostname: "**.gtimg.cn",
+        pathname: "/**",
+      },
+      {
         protocol: "http",
-        hostname: "**.qq.com",
+        hostname: "**.gtimg.cn",
         pathname: "/**",
       },
     ],

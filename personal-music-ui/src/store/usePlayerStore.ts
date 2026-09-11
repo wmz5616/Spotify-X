@@ -144,7 +144,14 @@ export const usePlayerStore = create<PlayerState>()(
         if (isPlaying) {
           audioRef?.current?.pause();
         } else {
-          audioRef?.current?.play();
+          const audio = audioRef?.current;
+          if (audio && audio.src && audio.src !== window.location.href) {
+            audio.play()?.catch?.((err) => {
+              if (err.name !== "AbortError" && err.name !== "NotSupportedError") {
+                console.warn("Play failed:", err);
+              }
+            });
+          }
         }
         set({ isPlaying: !isPlaying });
       },
@@ -269,7 +276,11 @@ export const usePlayerStore = create<PlayerState>()(
         const { playMode, audioRef, autoPlayNext } = get();
         if (playMode === "repeat-one" && audioRef?.current) {
           audioRef.current.currentTime = 0;
-          audioRef.current.play();
+          audioRef.current.play()?.catch?.((err) => {
+            if (err.name !== "AbortError" && err.name !== "NotSupportedError") {
+              console.warn("Repeat play failed:", err);
+            }
+          });
         } else if (autoPlayNext) {
           get().playNext();
         } else {
