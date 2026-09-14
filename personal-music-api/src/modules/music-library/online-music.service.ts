@@ -1260,7 +1260,104 @@ export class OnlineMusicService implements OnModuleInit {
       }
     }
 
-    // 1. 第一优先级：Meting 网易云解析网关 (快速解析直链，延迟 < 400ms，在海外容器如 Render 上极高成功率)
+    // 1. 核心第一优先级：GDStudio 网易云无损 FLAC / 320k 完整音轨解析器 (每首 20MB ~ 60MB 完整母带，绝不播放 30 秒试听)
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 6000);
+      const gdRes = await fetch(`https://music-api.gdstudio.xyz/api.php?types=url&id=${id}&source=netease`, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'application/json, text/plain, */*',
+        },
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+      if (gdRes.ok) {
+        const gdJson: any = await gdRes.json();
+        // 严格验证 size > 1000000 (排除 480KB 的 30 秒试听音频，确保只用完整音轨)
+        if (
+          gdJson?.url &&
+          typeof gdJson.url === 'string' &&
+          gdJson.url.startsWith('http') &&
+          (gdJson.size === undefined || gdJson.size > 1000000)
+        ) {
+          this.streamUrlCache.set(id, { url: gdJson.url, timestamp: Date.now() });
+          return gdJson.url;
+        }
+      }
+    } catch (e: any) {
+      this.logger.debug?.(`GDStudio netease url failed for ${id}: ${e?.message}`);
+    }
+
+    // 2. 第二优先级：跨平台按歌名 + 歌手精准匹配 (解决部分独家版权歌曲，获取完整 MP3 音轨)
+    const song = await this.findSongById(id);
+    if (song) {
+      const cleanTitle = song.title.replace(/\s*\(.*?\)/g, '').replace(/\s*\[.*?\]/g, '').trim() || song.title;
+      const cleanArtist = song.artist.replace(/\s*[,/&].*$/, '').trim() || song.artist;
+      const searchQuery = `${cleanTitle} ${cleanArtist}`;
+
+      try {
+        const kwSearch = await this.httpGet(
+          `https://music-api.gdstudio.xyz/api.php?types=search&count=2&source=kuwo&pages=1&name=${encodeURIComponent(searchQuery)}`,
+        );
+        const kwJson = JSON.parse(kwSearch);
+        const kwSong = kwJson?.[0];
+
+        if (kwSong && kwSong.id) {
+          // 尝试 GDStudio 酷我解析
+          try {
+            const gdKwRes = await this.httpGet(`https://music-api.gdstudio.xyz/api.php?types=url&id=${kwSong.id}&source=kuwo`);
+            const gdKwJson = JSON.parse(gdKwRes);
+            if (gdKwJson.url && gdKwJson.url.startsWith('http') && (gdKwJson.size === undefined || gdKwJson.size > 1000000)) {
+              this.streamUrlCache.set(id, { url: gdKwJson.url, timestamp: Date.now() });
+              return gdKwJson.url;
+            }
+          } catch { }
+
+          // 尝试酷我 native anti.s 转换，并严格验证体积 > 1MB，杜绝 180KB 10秒试听片段
+          const playUrl = await this.httpGet(
+            `http://antiserver.kuwo.cn/anti.s?type=convert_url&rid=${kwSong.id}&format=mp3&response=url`,
+            { 'User-Agent': 'okhttp/3.10.0' },
+          );
+          if (playUrl && playUrl.startsWith('http') && !playUrl.includes('/nf/resource/')) {
+            try {
+              const headCheck = await fetch(playUrl.trim(), { method: 'HEAD' });
+              const size = parseInt(headCheck.headers.get('content-length') || '0', 10);
+              if (size > 1000000) {
+                this.streamUrlCache.set(id, { url: playUrl.trim(), timestamp: Date.now() });
+                return playUrl.trim();
+              }
+            } catch { }
+          }
+
+          // 尝试海棠备用源
+          const backupUrl = `https://musicapi.haitangw.net/music/kw.php?type=mp3&id=${kwSong.id}&level=lossless`;
+          this.streamUrlCache.set(id, { url: backupUrl, timestamp: Date.now() });
+          return backupUrl;
+        }
+      } catch (e: any) {
+        this.logger.warn(`Cross-match failed for "${searchQuery}": ${e.message}`);
+      }
+    }
+
+    // 3. 第三优先级：网易云官方 outer 媒体直链 (官方放行高品质 MP3，必须验证完整版 > 1MB)
+    try {
+      const neteaseOuter = `https://music.163.com/song/media/outer/url?id=${id}.mp3`;
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 3000);
+      const headRes = await fetch(neteaseOuter, { method: 'HEAD', redirect: 'follow', signal: controller.signal });
+      clearTimeout(timeout);
+      const ct = headRes.headers.get('content-type') || '';
+      const cl = parseInt(headRes.headers.get('content-length') || '0', 10);
+      // 校验返回必须为音频流且文件大于 1MB (杜绝 404 HTML 或 30 秒试听)
+      if (headRes.ok && (ct.includes('audio') || ct.includes('octet-stream')) && cl > 1000000) {
+        const finalUrl = headRes.url || neteaseOuter;
+        this.streamUrlCache.set(id, { url: finalUrl, timestamp: Date.now() });
+        return finalUrl;
+      }
+    } catch { }
+
+    // 4. 第四优先级：Meting 网易云解析网关兜底 (仅在上述源均未命中时启用)
     try {
       const metingUrl = `https://api.injahow.cn/meting/?type=url&id=${id}`;
       const controller = new AbortController();
@@ -1280,102 +1377,6 @@ export class OnlineMusicService implements OnModuleInit {
       }
     } catch (e: any) {
       this.logger.debug?.(`Meting resolve failed for ${id}: ${e?.message}`);
-    }
-
-    // 2. 第二优先级：GDStudio 网易云无损 FLAC / 320k 完整音轨解析器 (带超时控制)
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 3500);
-      const gdRes = await fetch(`https://music-api.gdstudio.xyz/api.php?types=url&id=${id}&source=netease`, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-          'Accept': 'application/json',
-        },
-        signal: controller.signal,
-      });
-      clearTimeout(timeout);
-      if (gdRes.ok) {
-        const gdJson: any = await gdRes.json();
-        if (
-          gdJson?.url &&
-          typeof gdJson.url === 'string' &&
-          gdJson.url.startsWith('http') &&
-          (gdJson.size === undefined || gdJson.size > 500000)
-        ) {
-          this.streamUrlCache.set(id, { url: gdJson.url, timestamp: Date.now() });
-          return gdJson.url;
-        }
-      }
-    } catch (e: any) {
-      this.logger.debug?.(`GDStudio resolve failed for ${id}: ${e?.message}`);
-    }
-
-    // 3. 第三优先级：网易云官方 outer 媒体直链 (官方放行高品质 MP3)
-    try {
-      const neteaseOuter = `https://music.163.com/song/media/outer/url?id=${id}.mp3`;
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 3000);
-      const headRes = await fetch(neteaseOuter, { method: 'HEAD', redirect: 'follow', signal: controller.signal });
-      clearTimeout(timeout);
-      const ct = headRes.headers.get('content-type') || '';
-      const cl = parseInt(headRes.headers.get('content-length') || '0', 10);
-      // 校验返回必须为音频流且文件大于 500KB (防止 404 HTML 或试听音频)
-      if (headRes.ok && (ct.includes('audio') || ct.includes('octet-stream')) && (cl === 0 || cl > 500000)) {
-        const finalUrl = headRes.url || neteaseOuter;
-        this.streamUrlCache.set(id, { url: finalUrl, timestamp: Date.now() });
-        return finalUrl;
-      }
-    } catch { }
-
-    // 4. 第四优先级：跨平台按歌名 + 歌手精准匹配 (解决部分独家版权歌曲)
-    const song = await this.findSongById(id);
-    if (song) {
-      const cleanTitle = song.title.replace(/\s*\(.*?\)/g, '').replace(/\s*\[.*?\]/g, '').trim() || song.title;
-      const cleanArtist = song.artist.replace(/\s*[,/&].*$/, '').trim() || song.artist;
-      const searchQuery = `${cleanTitle} ${cleanArtist}`;
-
-      try {
-        const kwSearch = await this.httpGet(
-          `https://music-api.gdstudio.xyz/api.php?types=search&count=2&source=kuwo&pages=1&name=${encodeURIComponent(searchQuery)}`,
-        );
-        const kwJson = JSON.parse(kwSearch);
-        const kwSong = kwJson?.[0];
-
-        if (kwSong && kwSong.id) {
-          // 尝试 GDStudio 酷我解析
-          try {
-            const gdKwRes = await this.httpGet(`https://music-api.gdstudio.xyz/api.php?types=url&id=${kwSong.id}&source=kuwo`);
-            const gdKwJson = JSON.parse(gdKwRes);
-            if (gdKwJson.url && gdKwJson.url.startsWith('http') && (gdKwJson.size === undefined || gdKwJson.size > 500000)) {
-              this.streamUrlCache.set(id, { url: gdKwJson.url, timestamp: Date.now() });
-              return gdKwJson.url;
-            }
-          } catch { }
-
-          // 尝试酷我 native anti.s 转换，并严格验证体积 > 600KB，杜绝 180KB 10秒试听片段
-          const playUrl = await this.httpGet(
-            `http://antiserver.kuwo.cn/anti.s?type=convert_url&rid=${kwSong.id}&format=mp3&response=url`,
-            { 'User-Agent': 'okhttp/3.10.0' },
-          );
-          if (playUrl && playUrl.startsWith('http') && !playUrl.includes('/nf/resource/')) {
-            try {
-              const headCheck = await fetch(playUrl.trim(), { method: 'HEAD' });
-              const size = parseInt(headCheck.headers.get('content-length') || '0', 10);
-              if (size > 600000) {
-                this.streamUrlCache.set(id, { url: playUrl.trim(), timestamp: Date.now() });
-                return playUrl.trim();
-              }
-            } catch { }
-          }
-
-          // 尝试海棠备用源
-          const backupUrl = `https://musicapi.haitangw.net/music/kw.php?type=mp3&id=${kwSong.id}&level=lossless`;
-          this.streamUrlCache.set(id, { url: backupUrl, timestamp: Date.now() });
-          return backupUrl;
-        }
-      } catch (e: any) {
-        this.logger.warn(`Cross-match failed for "${searchQuery}": ${e.message}`);
-      }
     }
 
     return null;
