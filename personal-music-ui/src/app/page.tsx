@@ -9,6 +9,8 @@ import { apiClient } from "@/lib/api-client";
 import { FadeInContainer, FadeInItem } from "@/components/FadeInStagger";
 import type { Song } from "@/types";
 
+export const dynamic = "force-dynamic";
+
 type Album = {
   id: number;
   title: string;
