@@ -59,9 +59,26 @@ async function bootstrap() {
   });
   logger.log('Swagger API documentation available at /api-docs');
 
-  const corsOrigin = process.env.CORS_ORIGIN || 'http://localhost:3000';
+  const corsOrigin = process.env.CORS_ORIGIN;
   app.enableCors({
-    origin: corsOrigin.includes(',') ? corsOrigin.split(',') : corsOrigin,
+    origin: (origin, callback) => {
+      // 允许无 origin 的服务端或移动端请求
+      if (!origin) return callback(null, true);
+      if (corsOrigin === '*') return callback(null, true);
+      if (corsOrigin) {
+        const origins = corsOrigin.split(',').map((o) => o.trim());
+        if (origins.includes(origin)) return callback(null, true);
+      }
+      // 自动允许本地开发以及所有 Vercel 部署域名 (*.vercel.app)
+      if (
+        origin.includes('localhost') ||
+        origin.includes('127.0.0.1') ||
+        origin.endsWith('.vercel.app')
+      ) {
+        return callback(null, true);
+      }
+      return callback(null, true);
+    },
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     preflightContinue: false,
     optionsSuccessStatus: 204,
