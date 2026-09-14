@@ -38,10 +38,59 @@ const AudioPlayer = () => {
     }
   }, [currentSong, isAuthenticated, recordPlay]);
 
+  const [directLosslessUrl, setDirectLosslessUrl] = useState<string | null>(null);
+
+  // 客户端直连获取 40MB+ 完整无损母带音轨 (突破海外 Render 云节点 Cloudflare 限制，彻底杜绝 30 秒试听)
+  useEffect(() => {
+    if (!currentSong) {
+      setDirectLosslessUrl(null);
+      return;
+    }
+
+    let isMounted = true;
+    const resolveLosslessFullAudio = async () => {
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 3500);
+        const res = await fetch(
+          `https://music-api.gdstudio.xyz/api.php?types=url&id=${currentSong.id}&source=netease`,
+          { signal: controller.signal }
+        );
+        clearTimeout(timeout);
+        if (res.ok) {
+          const data = await res.json();
+          if (
+            data?.url &&
+            typeof data.url === "string" &&
+            data.url.startsWith("http") &&
+            (data.size === undefined || data.size > 1000000)
+          ) {
+            if (isMounted) {
+              setDirectLosslessUrl(data.url);
+              return;
+            }
+          }
+        }
+      } catch {
+        // 静默降级到后端代理音频流
+      }
+      if (isMounted) {
+        setDirectLosslessUrl(null);
+      }
+    };
+
+    resolveLosslessFullAudio();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [currentSong?.id]);
+
   const streamUrl = useMemo(() => {
     if (!currentSong) return undefined;
+    if (directLosslessUrl) return directLosslessUrl;
     return getStreamSrc(currentSong.id, streamToken || undefined, settings?.audioQuality);
-  }, [currentSong?.id, streamToken, settings?.audioQuality]);
+  }, [currentSong?.id, directLosslessUrl, streamToken, settings?.audioQuality]);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -184,6 +233,10 @@ const AudioPlayer = () => {
           return;
         }
         console.warn("Audio playback error:", e);
+        if (directLosslessUrl) {
+          setDirectLosslessUrl(null);
+          return;
+        }
         if (currentSong && retryCount < 1) {
           setRetryCount((prev) => prev + 1);
           try {
