@@ -468,13 +468,13 @@ const MobileQQSongGroup = ({
               </div>
             </div>
 
-            {/* 红心收藏按钮与真实单曲收藏量 */}
+            {/* 红心收藏按钮与真实单曲收藏量 (固定宽度并左对齐，确保红心图标垂直严格对齐) */}
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 toggleFavoriteSong(song.id);
               }}
-              className={`flex items-center gap-1 text-xs shrink-0 px-2 py-1 active:scale-90 transition-all cursor-pointer ${
+              className={`flex items-center justify-start gap-1 text-xs shrink-0 w-[60px] px-1 py-1 active:scale-90 transition-all cursor-pointer ${
                 isFav
                   ? "text-rose-500 hover:text-rose-600"
                   : "text-neutral-400 hover:text-rose-500 dark:text-neutral-500 dark:hover:text-rose-400"
@@ -483,18 +483,18 @@ const MobileQQSongGroup = ({
             >
               <Heart
                 size={15}
-                className={isFav ? "fill-rose-500 text-rose-500" : "text-neutral-400"}
+                className={`shrink-0 ${isFav ? "fill-rose-500 text-rose-500" : "text-neutral-400"}`}
               />
               {song.favCount ? (
                 <span
-                  className={`text-[11px] font-mono tabular-nums transition-colors ${
+                  className={`text-[11px] font-mono tabular-nums leading-none whitespace-nowrap transition-colors ${
                     isFav ? "text-rose-500 font-semibold" : "text-neutral-400 dark:text-neutral-400"
                   }`}
                 >
                   {song.favCount}
                 </span>
               ) : isFav ? (
-                <span className="text-[11px] font-mono tabular-nums text-rose-500 font-semibold">
+                <span className="text-[11px] font-mono tabular-nums leading-none whitespace-nowrap text-rose-500 font-semibold">
                   已收藏
                 </span>
               ) : null}

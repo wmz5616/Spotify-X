@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { Suspense } from "react";
 import { usePathname } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import PlayerControls from "@/components/PlayerControls";
@@ -11,6 +11,8 @@ import AmbientBackground from "@/components/AmbientBackground";
 export default function ConditionalLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isAdminPage = pathname?.startsWith("/admin");
+
+  const isDetailPage = pathname?.startsWith("/album/") || pathname?.startsWith("/playlist/");
 
   if (isAdminPage) {
     return (
@@ -28,13 +30,17 @@ export default function ConditionalLayout({ children }: { children: React.ReactN
       <div className="flex-grow flex min-h-0 relative z-10">
         <Sidebar />
         <main id="main-content" className="flex-1 overflow-y-auto relative custom-scrollbar bg-white dark:bg-[#121212] transition-colors duration-200">
-          <Header />
-          <div className="p-3 sm:p-6 pb-36 md:pb-28">{children}</div>
+          <Suspense fallback={<div className="h-14 md:h-16" />}>
+            <Header />
+          </Suspense>
+          <div className={isDetailPage ? "p-0 sm:p-6 pb-24 md:pb-28" : "p-3 sm:p-6 pb-36 md:pb-28"}>
+            {children}
+          </div>
         </main>
       </div>
       <div className="relative z-20">
         <PlayerControls />
-        <MobileNavBar />
+        {!isDetailPage && <MobileNavBar />}
       </div>
     </div>
   );

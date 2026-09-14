@@ -2,7 +2,6 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { apiClient } from "@/lib/api-client";
 import { useFavoritesStore } from "./useFavoritesStore";
 
 interface User {
@@ -169,7 +168,7 @@ export const useUserStore = create<UserState>()(
 
                     const user = await response.json();
                     set({ user, isLoading: false });
-                } catch (error) {
+                } catch {
                     set({ isLoading: false });
                 }
             },

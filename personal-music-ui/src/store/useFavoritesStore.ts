@@ -66,7 +66,7 @@ export const useFavoritesStore = create<FavoritesState>((set, get) => ({
                 isLoading: false,
                 isInitialized: true,
             });
-        } catch (error) {
+        } catch {
             set({ isLoading: false });
         }
     },
@@ -110,7 +110,7 @@ export const useFavoritesStore = create<FavoritesState>((set, get) => ({
             }
 
             return true;
-        } catch (error) {
+        } catch {
             const revertSet = new Set(favoriteSongIds);
             set({ favoriteSongIds: revertSet });
             return false;
@@ -150,7 +150,7 @@ export const useFavoritesStore = create<FavoritesState>((set, get) => ({
             }
 
             return true;
-        } catch (error) {
+        } catch {
             const revertSet = new Set(favoriteAlbumIds);
             set({ favoriteAlbumIds: revertSet });
             return false;
@@ -190,7 +190,7 @@ export const useFavoritesStore = create<FavoritesState>((set, get) => ({
             }
 
             return true;
-        } catch (error) {
+        } catch {
             const revertSet = new Set(followedArtistIds);
             set({ followedArtistIds: revertSet });
             return false;

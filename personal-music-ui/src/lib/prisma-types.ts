@@ -175,6 +175,14 @@ export interface Song {
   albumId: number;
   duration: number | null;
   lyrics: string | null;
+  artist?: string;
+  favCount?: string;
+  tag?: string;
+  trend?: {
+    type: 'up' | 'down' | 'same' | 'new';
+    value?: number;
+    text: string;
+  };
   favoritedBy?: FavoriteSong[];
   album?: Album;
   userPlaylistSongs?: UserPlaylistSong[];

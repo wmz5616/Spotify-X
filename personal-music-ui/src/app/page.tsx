@@ -84,7 +84,7 @@ const HomePage = async () => {
 
   return (
     <div
-      className="relative min-h-screen pt-2 sm:pt-4 pb-28 sm:pb-32"
+      className="relative min-h-screen pt-0 sm:pt-4 pb-28 sm:pb-32"
     >
 
       <div className="relative z-10 px-1 sm:px-4 md:px-6">
@@ -149,7 +149,7 @@ const HomePage = async () => {
             </FadeInContainer>
           ) : (
             <div className="text-neutral-500 mt-4 text-center py-10">
-              暂无专辑。请先在服务器端扫描你的音乐库。
+              这里空空如也哦
             </div>
           )}
         </section>

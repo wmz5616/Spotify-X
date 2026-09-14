@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   Play,
   Pause,
@@ -169,6 +170,8 @@ const PlayerControls = () => {
   const { isSongFavorited, toggleFavoriteSong } = useFavoritesStore();
   const { isAuthenticated } = useUserStore();
 
+  const pathname = usePathname();
+  const isDetailPage = pathname?.startsWith("/album/") || pathname?.startsWith("/playlist/");
   const [isMounted, setIsMounted] = useState(false);
   const [showLyrics, setShowLyrics] = useState(false);
   const [showQueue, setShowQueue] = useState(false);
@@ -435,7 +438,10 @@ const PlayerControls = () => {
       {/* 移动端专属浮动迷你播放器 (仿QQ音乐胶囊设计，边缘为实时流动的绿色进度条) */}
       <div
         onClick={toggleFullScreen}
-        className="md:hidden fixed bottom-[66px] left-3 right-3 z-40 h-[52px] bg-white/95 text-neutral-900 shadow-[0_4px_16px_rgba(0,0,0,0.06)] dark:bg-[#18181a]/95 dark:text-white dark:shadow-[0_8px_28px_rgba(0,0,0,0.7)] backdrop-blur-xl rounded-full pl-2.5 pr-3.5 flex items-center justify-between active:scale-[0.99] transition-all cursor-pointer select-none"
+        className={cn(
+          "md:hidden fixed left-3 right-3 z-40 h-[52px] bg-white/95 text-neutral-900 shadow-[0_4px_16px_rgba(0,0,0,0.06)] dark:bg-[#18181a]/95 dark:text-white dark:shadow-[0_8px_28px_rgba(0,0,0,0.7)] backdrop-blur-xl rounded-full pl-2.5 pr-3.5 flex items-center justify-between active:scale-[0.99] transition-all cursor-pointer select-none",
+          isDetailPage ? "bottom-3" : "bottom-[66px]"
+        )}
       >
         {/* 椭圆形边缘实时顺序流动的绿色进度条 */}
         <MobileCapsuleProgressBar

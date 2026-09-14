@@ -73,29 +73,41 @@ const SongRowItem = ({
     <SongContextMenu song={song}>
       <div
         style={style}
-        className={clsx(
-          "group grid grid-cols-[24px_4fr_2fr_minmax(60px,auto)] gap-4 px-4 py-2 text-sm text-neutral-400 hover:bg-neutral-800/50 rounded-md transition cursor-default items-center relative select-none",
-          isCurrentSong && "bg-neutral-800/30"
-        )}
+        onClick={handlePlayClick}
         onDoubleClick={() => playSong(song, queue)}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
+        className={clsx(
+          "group flex md:grid md:grid-cols-[28px_4fr_2fr_minmax(60px,auto)] justify-between items-center gap-2.5 md:gap-4 px-2.5 md:px-4 py-2 text-sm text-neutral-500 dark:text-neutral-400 hover:bg-neutral-100/80 dark:hover:bg-white/5 active:bg-neutral-200/60 dark:active:bg-white/10 rounded-xl transition cursor-pointer md:cursor-default relative select-none",
+          isCurrentSong ? "bg-emerald-500/10 dark:bg-emerald-500/10" : ""
+        )}
       >
-        <div className="flex items-center justify-end w-full relative min-h-[16px]">
+        <div className="flex items-center justify-center md:justify-end w-6 md:w-full shrink-0 relative min-h-[16px]">
           {!isHovered && !isCurrentSong && (
-            <span className="font-medium tabular-nums text-neutral-400">
+            <span
+              className={clsx(
+                "font-bold tabular-nums text-xs md:text-sm transition-colors",
+                index === 0
+                  ? "text-rose-500 font-extrabold"
+                  : index === 1
+                  ? "text-amber-500 font-extrabold"
+                  : index === 2
+                  ? "text-amber-600 dark:text-amber-400 font-extrabold"
+                  : "text-neutral-400 dark:text-neutral-500 font-medium"
+              )}
+            >
               {index + 1}
             </span>
           )}
 
           {!isHovered && isCurrentSong && isPlaying && (
-            <span className="text-green-500 animate-pulse">
+            <span className="text-[#1ed760] animate-pulse">
               <BarChart3 size={16} />
             </span>
           )}
 
           {!isHovered && isCurrentSong && !isPlaying && (
-            <span className="text-green-500 font-medium tabular-nums">
+            <span className="text-[#1ed760] font-bold tabular-nums text-xs md:text-sm">
               {index + 1}
             </span>
           )}
@@ -103,20 +115,20 @@ const SongRowItem = ({
           {isHovered && (
             <button
               onClick={handlePlayClick}
-              className="text-white hover:scale-110 transition-transform flex items-center justify-center"
+              className="text-neutral-800 dark:text-white hover:scale-110 transition-transform flex items-center justify-center"
             >
               {isCurrentSong && isPlaying ? (
-                <Pause size={16} fill="white" />
+                <Pause size={16} fill="currentColor" />
               ) : (
-                <Play size={16} fill="white" />
+                <Play size={16} fill="currentColor" />
               )}
             </button>
           )}
         </div>
 
-        <div className="flex items-center gap-3 overflow-hidden">
+        <div className="flex items-center gap-2.5 md:gap-3 overflow-hidden min-w-0 flex-1">
           {!hideCover && (
-            <div className="relative h-10 w-10 min-w-[40px] overflow-hidden rounded shadow-sm flex-shrink-0">
+            <div className="relative h-10 w-10 min-w-[40px] overflow-hidden rounded-lg shadow-sm flex-shrink-0 bg-neutral-100 dark:bg-neutral-800 border border-black/5 dark:border-white/5">
               <Image
                 src={coverUrl}
                 fill
@@ -126,16 +138,16 @@ const SongRowItem = ({
               />
             </div>
           )}
-          <div className="flex flex-col overflow-hidden">
+          <div className="flex flex-col overflow-hidden min-w-0 flex-1">
             <span
               className={clsx(
-                "truncate font-medium text-[15px] pr-2",
-                isCurrentSong ? "text-green-500" : "text-white"
+                "truncate font-medium text-sm md:text-[15px] pr-2 transition-colors",
+                isCurrentSong ? "text-[#1ed760] font-bold" : "text-neutral-900 dark:text-white"
               )}
             >
               {cleanSongTitle(song.title, song.artist || song.album?.artists)}
             </span>
-            <div className="flex items-center gap-1 text-sm text-neutral-400 group-hover:text-white transition-colors truncate">
+            <div className="flex items-center gap-1 text-xs md:text-sm text-neutral-500 dark:text-neutral-400 group-hover:text-neutral-700 dark:group-hover:text-neutral-300 transition-colors truncate">
               <div className="flex truncate">
                 {(() => {
                   const rawArtist = song.artist?.trim();
@@ -154,7 +166,7 @@ const SongRowItem = ({
                           <React.Fragment key={name + i}>
                             <Link
                               href={href}
-                              className="hover:underline hover:text-white transition-colors"
+                              className="hover:underline hover:text-neutral-900 dark:hover:text-white transition-colors"
                               onClick={(e) => e.stopPropagation()}
                             >
                               {name}
@@ -172,7 +184,7 @@ const SongRowItem = ({
                       <React.Fragment key={artist.id || i}>
                         <Link
                           href={artist.id ? `/artist/${encodeURIComponent(artist.name)}?id=${artist.id}` : `/artist/${encodeURIComponent(artist.name)}`}
-                          className="hover:underline hover:text-white transition-colors"
+                          className="hover:underline hover:text-neutral-900 dark:hover:text-white transition-colors"
                           onClick={(e) => e.stopPropagation()}
                         >
                           {artist.name}
@@ -191,7 +203,7 @@ const SongRowItem = ({
           </div>
         </div>
 
-        <div className="hidden md:block truncate hover:text-white transition-colors text-sm pr-4">
+        <div className="hidden md:block truncate text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors text-sm pr-4">
           <Link
             href={`/album/${song.album?.id}`}
             className="hover:underline"
@@ -201,15 +213,15 @@ const SongRowItem = ({
           </Link>
         </div>
 
-        <div className="flex items-center justify-end gap-4 pl-2 pr-2">
+        <div className="flex items-center justify-end gap-2.5 md:gap-4 pl-2 pr-1 md:pr-2 shrink-0">
           <LikeButton
             isLiked={isFavorited}
             onToggle={handleToggleFavorite}
-            size={16}
-            className={clsx(!isFavorited && "invisible group-hover:visible")}
+            size={17}
+            className={clsx(!isFavorited && "opacity-60 md:opacity-0 group-hover:opacity-100 hover:opacity-100")}
           />
 
-          <div className="text-sm font-variant-numeric tabular-nums w-10 text-right">
+          <div className="text-xs md:text-sm font-variant-numeric tabular-nums w-10 text-right text-neutral-400 dark:text-neutral-500">
             {formatDuration(song.duration)}
           </div>
         </div>

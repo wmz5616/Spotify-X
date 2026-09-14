@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Search as SearchIcon, AlertCircle } from "lucide-react";
 import { clsx } from "clsx";
@@ -22,7 +22,7 @@ type SearchResults = {
 
 type FilterType = "all" | "artists" | "songs" | "albums";
 
-const SearchPage = () => {
+const SearchPageContent = () => {
   const searchParams = useSearchParams();
   const query = searchParams.get("q");
 
@@ -250,4 +250,10 @@ const SearchPage = () => {
   );
 };
 
-export default SearchPage;
+export default function SearchPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-neutral-400">正在加载搜索...</div>}>
+      <SearchPageContent />
+    </Suspense>
+  );
+}

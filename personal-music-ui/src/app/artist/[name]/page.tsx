@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, Suspense } from "react";
 import Image from "next/image";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Play, AlertCircle, UserPlus, UserCheck, Check } from "lucide-react";
@@ -40,7 +40,7 @@ const ArtistPageSkeleton = () => (
   </div>
 );
 
-const ArtistDetailPage = () => {
+const ArtistDetailPageContent = () => {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -372,4 +372,10 @@ const ArtistDetailPage = () => {
   );
 };
 
-export default ArtistDetailPage;
+export default function ArtistDetailPage() {
+  return (
+    <Suspense fallback={<ArtistPageSkeleton />}>
+      <ArtistDetailPageContent />
+    </Suspense>
+  );
+}

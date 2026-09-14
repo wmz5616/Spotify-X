@@ -1,9 +1,10 @@
-"use client";
+"use client";
 
 import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     MoreHorizontal,
+    MoreVertical,
     HeartOff,
     ListPlus,
     Play,
@@ -28,9 +29,16 @@ interface SongDropdownMenuProps {
         };
     };
     onRemoveFavorite?: () => void;
+    icon?: "horizontal" | "vertical";
+    buttonClassName?: string;
 }
 
-export default function SongDropdownMenu({ song, onRemoveFavorite }: SongDropdownMenuProps) {
+export default function SongDropdownMenu({
+    song,
+    onRemoveFavorite,
+    icon = "horizontal",
+    buttonClassName,
+}: SongDropdownMenuProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [showPlaylistModal, setShowPlaylistModal] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
@@ -73,8 +81,8 @@ export default function SongDropdownMenu({ song, onRemoveFavorite }: SongDropdow
 
     const handleAddToPlaylist = (e: React.MouseEvent) => {
         e.stopPropagation();
-        setIsOpen(false);
         setShowPlaylistModal(true);
+        setIsOpen(false);
     };
 
     const menuItems = [
@@ -82,7 +90,7 @@ export default function SongDropdownMenu({ song, onRemoveFavorite }: SongDropdow
             icon: HeartOff,
             label: "取消收藏",
             onClick: handleRemoveFavorite,
-            className: "text-red-400 hover:text-red-300",
+            className: "text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300",
         },
         {
             icon: ListPlus,
@@ -101,9 +109,17 @@ export default function SongDropdownMenu({ song, onRemoveFavorite }: SongDropdow
             <div className="relative" ref={menuRef}>
                 <button
                     onClick={handleToggle}
-                    className="p-2 text-neutral-400 hover:text-white hover:bg-neutral-700 rounded-full transition"
+                    className={
+                        buttonClassName ||
+                        "p-1.5 text-neutral-400 hover:text-neutral-900 dark:hover:text-white rounded-full transition active:scale-90"
+                    }
+                    title="更多选项"
                 >
-                    <MoreHorizontal size={20} />
+                    {icon === "vertical" ? (
+                        <MoreVertical size={18} />
+                    ) : (
+                        <MoreHorizontal size={20} />
+                    )}
                 </button>
 
                 <AnimatePresence>
@@ -113,21 +129,22 @@ export default function SongDropdownMenu({ song, onRemoveFavorite }: SongDropdow
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: -10 }}
                             transition={{ duration: 0.1 }}
-                            className="absolute right-0 top-full mt-1 w-48 bg-neutral-800 rounded-lg shadow-xl border border-neutral-700 overflow-hidden z-50"
+                            className="absolute right-0 top-full mt-1 w-48 bg-white dark:bg-neutral-800 rounded-xl shadow-2xl border border-neutral-200/80 dark:border-neutral-700/80 overflow-hidden z-50 py-1"
                         >
                             {menuItems.map((item, index) => (
                                 <button
                                     key={index}
                                     onClick={item.onClick}
-                                    className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-neutral-700 transition text-left ${item.className || "text-neutral-300 hover:text-white"
-                                        }`}
+                                    className={`w-full flex items-center gap-3 px-4 py-2.5 hover:bg-neutral-100 dark:hover:bg-neutral-700/60 transition text-left ${
+                                        item.className || "text-neutral-700 dark:text-neutral-200 hover:text-neutral-900 dark:hover:text-white"
+                                    }`}
                                 >
-                                    <item.icon size={18} />
+                                    <item.icon size={16} />
                                     <span className="text-sm">{item.label}</span>
                                 </button>
                             ))}
 
-                            <div className="border-t border-neutral-700" />
+                            <div className="border-t border-neutral-200/60 dark:border-neutral-700/60 my-1" />
 
                             {song.album && (
                                 <Link
@@ -136,9 +153,9 @@ export default function SongDropdownMenu({ song, onRemoveFavorite }: SongDropdow
                                         e.stopPropagation();
                                         setIsOpen(false);
                                     }}
-                                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-neutral-700 transition text-neutral-300 hover:text-white"
+                                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-neutral-100 dark:hover:bg-neutral-700/60 transition text-neutral-700 dark:text-neutral-200 hover:text-neutral-900 dark:hover:text-white"
                                 >
-                                    <Disc3 size={18} />
+                                    <Disc3 size={16} />
                                     <span className="text-sm">查看专辑</span>
                                 </Link>
                             )}
@@ -150,9 +167,9 @@ export default function SongDropdownMenu({ song, onRemoveFavorite }: SongDropdow
                                         e.stopPropagation();
                                         setIsOpen(false);
                                     }}
-                                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-neutral-700 transition text-neutral-300 hover:text-white"
+                                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-neutral-100 dark:hover:bg-neutral-700/60 transition text-neutral-700 dark:text-neutral-200 hover:text-neutral-900 dark:hover:text-white"
                                 >
-                                    <Users size={18} />
+                                    <Users size={16} />
                                     <span className="text-sm">查看艺术家</span>
                                 </Link>
                             )}

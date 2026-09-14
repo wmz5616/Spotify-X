@@ -34,6 +34,11 @@ export type Song = {
   lyrics?: string | null;
   favCount?: string;
   tag?: string;
+  trend?: {
+    type: 'up' | 'down' | 'same' | 'new';
+    value?: number;
+    text: string;
+  };
   album?: {
     id: number;
     title: string;

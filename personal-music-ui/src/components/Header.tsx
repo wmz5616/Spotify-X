@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { Search, ChevronLeft, ChevronRight, X, MessageCircle, UserPlus, Home } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, X, MessageCircle, UserPlus, Home, ArrowLeft, Share2, MoreVertical } from "lucide-react";
 import { clsx } from "clsx";
 import UserMenu from "./UserMenu";
 import { useNotificationStore } from "@/store/useNotificationStore";
@@ -15,9 +15,7 @@ import AddFriendModal from "./chat/AddFriendModal";
 const Header = () => {
   const router = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const urlQ = searchParams?.get("q") || "";
-  const [query, setQuery] = useState(urlQ);
+  const [query, setQuery] = useState("");
   const [isScrolled, setIsScrolled] = useState(false);
   const { setChatOpen, totalUnreadCount, fetchConversations, initSocket } = useChatStore();
   const startPolling = useNotificationStore(state => state.startPolling);
@@ -45,11 +43,14 @@ const Header = () => {
 
   useEffect(() => {
     if (pathname === "/search") {
-      setQuery(urlQ);
+      if (typeof window !== "undefined") {
+        const q = new URLSearchParams(window.location.search).get("q") || "";
+        setQuery(q);
+      }
     } else {
       setQuery("");
     }
-  }, [pathname, urlQ]);
+  }, [pathname]);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -83,7 +84,8 @@ const Header = () => {
 
     const debounceTimer = setTimeout(() => {
       const trimmed = query.trim();
-      if (trimmed !== urlQ) {
+      const currentQ = typeof window !== "undefined" ? (new URLSearchParams(window.location.search).get("q") || "") : "";
+      if (trimmed !== currentQ) {
         if (trimmed) {
           router.replace(`/search?q=${encodeURIComponent(trimmed)}`);
         } else {
@@ -92,7 +94,7 @@ const Header = () => {
       }
     }, 250);
     return () => clearTimeout(debounceTimer);
-  }, [query, pathname, urlQ, router]);
+  }, [query, pathname, router]);
 
   const handleSearchChange = (val: string) => {
     setQuery(val);
@@ -117,45 +119,52 @@ const Header = () => {
     }
   };
 
+  const isDetailPage = pathname?.startsWith("/album/") || pathname?.startsWith("/playlist/");
+
   return (
     <header
+      suppressHydrationWarning
       className={clsx(
-        "sticky -top-[1px] pt-[1px] z-50 h-14 md:h-16 px-4 md:px-6 flex items-center justify-between transition-all duration-300 ease-in-out relative select-none",
+        "sticky -top-[1px] pt-[1px] z-50 h-14 md:h-16 px-4 md:px-6 items-center justify-between transition-all duration-300 ease-in-out relative select-none",
+        isDetailPage ? "hidden md:flex" : "flex",
         isScrolled
           ? "bg-white/95 dark:bg-[#121212]/95 backdrop-blur-xl shadow-sm dark:shadow-[0_8px_30px_rgba(0,0,0,0.85)] border-b border-black/5 dark:border-transparent"
           : "bg-white md:bg-transparent dark:bg-[#121212] md:dark:bg-transparent"
       )}
     >
-      {/* 移动端专属顶部栏：极简优雅搜索栏 (极简灰度Search图标，无多余icon) */}
-      <div className="flex md:hidden items-center w-full">
-        <div className="relative w-full flex items-center">
-          <div className="absolute left-3.5 top-1/2 -translate-y-1/2 flex items-center pointer-events-none z-10 text-neutral-400 dark:text-neutral-500">
-            <Search size={16} strokeWidth={2} />
+      {/* 移动端搜索栏 (仅非详情页展示，详情页完全隐藏顶部栏) */}
+      {!isDetailPage && (
+        <div className="flex md:hidden items-center w-full">
+          <div className="relative w-full flex items-center">
+            <div className="absolute left-3.5 top-1/2 -translate-y-1/2 flex items-center pointer-events-none z-10 text-neutral-400 dark:text-neutral-500">
+              <Search size={16} strokeWidth={2} />
+            </div>
+            <input
+              type="text"
+              placeholder="搜索"
+              value={query}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              onKeyDown={handleKeyDown}
+              onFocus={() => {
+                if (pathname !== "/search") {
+                  router.push(query.trim() ? `/search?q=${encodeURIComponent(query.trim())}` : "/search");
+                }
+              }}
+              suppressHydrationWarning
+              className="w-full h-[38px] bg-[#f2f4f7] hover:bg-[#ebedf1] focus:bg-white text-neutral-900 border border-neutral-200/60 dark:bg-[#1e1e20] dark:hover:bg-[#252528] dark:focus:bg-[#222225] dark:border-white/5 dark:text-white rounded-full pl-9 pr-9 text-[13px] placeholder:text-neutral-400 dark:placeholder:text-neutral-500 focus:outline-none ring-1 ring-transparent focus:ring-1 focus:ring-black/10 dark:focus:ring-white/20 transition-all font-normal shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
+            />
+            {query && (
+              <button
+                onClick={handleClear}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-800 dark:hover:text-white transition-colors p-0.5 rounded-full hover:bg-black/5 dark:hover:bg-white/10"
+                title="清空"
+              >
+                <X size={14} />
+              </button>
+            )}
           </div>
-          <input
-            type="text"
-            placeholder="搜索歌曲、歌手、歌单"
-            value={query}
-            onChange={(e) => handleSearchChange(e.target.value)}
-            onKeyDown={handleKeyDown}
-            onFocus={() => {
-              if (pathname !== "/search") {
-                router.push(query.trim() ? `/search?q=${encodeURIComponent(query.trim())}` : "/search");
-              }
-            }}
-            className="w-full h-[38px] bg-[#f2f4f7] hover:bg-[#ebedf1] focus:bg-white text-neutral-900 border border-neutral-200/60 dark:bg-[#1e1e20] dark:hover:bg-[#252528] dark:focus:bg-[#222225] dark:border-white/5 dark:text-white rounded-full pl-9 pr-9 text-[13px] placeholder:text-neutral-400 dark:placeholder:text-neutral-500 focus:outline-none ring-1 ring-transparent focus:ring-1 focus:ring-black/10 dark:focus:ring-white/20 transition-all font-normal shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
-          />
-          {query && (
-            <button
-              onClick={handleClear}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-800 dark:hover:text-white transition-colors p-0.5 rounded-full hover:bg-black/5 dark:hover:bg-white/10"
-              title="清空"
-            >
-              <X size={14} />
-            </button>
-          )}
         </div>
-      </div>
+      )}
 
       {/* 桌面端顶部栏 */}
       <div className="hidden md:flex items-center justify-between w-full relative">
@@ -208,6 +217,7 @@ const Header = () => {
               value={query}
               onChange={(e) => handleSearchChange(e.target.value)}
               onKeyDown={handleKeyDown}
+              suppressHydrationWarning
               className="w-full bg-[#202020] hover:bg-[#262626] focus:bg-[#202020] rounded-full py-2.5 pl-10 pr-10 text-sm text-white placeholder:text-neutral-400 focus:outline-none ring-1 ring-transparent focus:ring-2 focus:ring-white/20 transition-all duration-200 border border-transparent shadow-inner"
             />
             {query && (
