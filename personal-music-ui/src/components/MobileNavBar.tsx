@@ -45,8 +45,16 @@ export default function MobileNavBar() {
     },
   ];
 
+  const isVideo = pathname?.startsWith('/video');
+
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 h-14 bg-white/95 dark:bg-[#121212]/95 backdrop-blur-xl border-t border-neutral-200 dark:border-white/[0.08] px-3 flex justify-around items-center z-50 select-none transition-colors duration-200 shadow-sm dark:shadow-none">
+    <nav
+      className={`md:hidden fixed bottom-0 left-0 right-0 h-14 backdrop-blur-xl px-3 flex justify-around items-center z-50 select-none transition-colors duration-200 ${
+        isVideo
+          ? "bg-black/90 border-t border-white/10 shadow-2xl"
+          : "bg-white/95 dark:bg-[#121212]/95 border-t border-neutral-200 dark:border-white/[0.08] shadow-sm dark:shadow-none"
+      }`}
+    >
       {navItems.map((item) => (
         <Link
           key={item.href}
@@ -54,6 +62,8 @@ export default function MobileNavBar() {
           className={`flex flex-col items-center justify-center gap-1 py-1 px-4 transition-all active:scale-90 ${
             item.isActive
               ? 'text-emerald-500 dark:text-emerald-400 font-bold'
+              : isVideo
+              ? 'text-neutral-400 hover:text-white'
               : 'text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-200'
           }`}
         >

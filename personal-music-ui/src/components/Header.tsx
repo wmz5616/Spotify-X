@@ -120,6 +120,7 @@ const Header = () => {
   };
 
   const isDetailPage = pathname?.startsWith("/album/") || pathname?.startsWith("/playlist/");
+  const isVideoPage = pathname?.startsWith("/video");
 
   return (
     <header
@@ -127,13 +128,14 @@ const Header = () => {
       className={clsx(
         "sticky -top-[1px] pt-[1px] z-50 h-14 md:h-16 px-4 md:px-6 items-center justify-between transition-all duration-300 ease-in-out relative select-none",
         isDetailPage ? "hidden md:flex" : "flex",
+        isVideoPage && "hidden md:flex",
         isScrolled
           ? "bg-white/95 dark:bg-[#121212]/95 backdrop-blur-xl shadow-sm dark:shadow-[0_8px_30px_rgba(0,0,0,0.85)] border-b border-black/5 dark:border-transparent"
           : "bg-white md:bg-transparent dark:bg-[#121212] md:dark:bg-transparent"
       )}
     >
-      {/* 移动端搜索栏 (仅非详情页展示，详情页完全隐藏顶部栏) */}
-      {!isDetailPage && (
+      {/* 移动端搜索栏 (仅非详情页且非视频页展示，视频页完全移除搜索栏) */}
+      {!isDetailPage && !isVideoPage && (
         <div className="flex md:hidden items-center w-full">
           <div className="relative w-full flex items-center">
             <div className="absolute left-3.5 top-1/2 -translate-y-1/2 flex items-center pointer-events-none z-10 text-neutral-400 dark:text-neutral-500">

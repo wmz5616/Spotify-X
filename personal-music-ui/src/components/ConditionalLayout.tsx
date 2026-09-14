@@ -2,6 +2,7 @@
 
 import React, { Suspense } from "react";
 import { usePathname } from "next/navigation";
+import clsx from "clsx";
 import Sidebar from "@/components/Sidebar";
 import PlayerControls from "@/components/PlayerControls";
 import Header from "@/components/Header";
@@ -13,6 +14,7 @@ export default function ConditionalLayout({ children }: { children: React.ReactN
   const isAdminPage = pathname?.startsWith("/admin");
 
   const isDetailPage = pathname?.startsWith("/album/") || pathname?.startsWith("/playlist/");
+  const isVideoPage = pathname?.startsWith("/video");
 
   if (isAdminPage) {
     return (
@@ -29,11 +31,27 @@ export default function ConditionalLayout({ children }: { children: React.ReactN
       <AmbientBackground />
       <div className="flex-grow flex min-h-0 relative z-10">
         <Sidebar />
-        <main id="main-content" className="flex-1 overflow-y-auto relative custom-scrollbar bg-white dark:bg-[#121212] transition-colors duration-200">
+        <main
+          id="main-content"
+          className={clsx(
+            "flex-1 relative transition-colors duration-200",
+            isVideoPage
+              ? "overflow-hidden bg-black"
+              : "overflow-y-auto custom-scrollbar bg-white dark:bg-[#121212]"
+          )}
+        >
           <Suspense fallback={<div className="h-14 md:h-16" />}>
             <Header />
           </Suspense>
-          <div className={isDetailPage ? "p-0 sm:p-6 pb-24 md:pb-28" : "p-3 sm:p-6 pb-36 md:pb-28"}>
+          <div
+            className={
+              isVideoPage
+                ? "p-0 h-full w-full pb-0"
+                : isDetailPage
+                ? "p-0 sm:p-6 pb-24 md:pb-28"
+                : "p-3 sm:p-6 pb-36 md:pb-28"
+            }
+          >
             {children}
           </div>
         </main>

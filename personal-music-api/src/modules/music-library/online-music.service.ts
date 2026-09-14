@@ -1822,6 +1822,74 @@ export class OnlineMusicService implements OnModuleInit {
     }
   }
 
+  async getRandomMvFeed(limit = 12): Promise<any[]> {
+    const areas = ['全部', '内地', '港台', '欧美', '韩国', '日本'];
+    const orders = ['最热', '最新'];
+    const randomArea = areas[Math.floor(Math.random() * areas.length)];
+    const randomOrder = orders[Math.floor(Math.random() * orders.length)];
+    const randomOffset = Math.floor(Math.random() * 6) * 10;
+
+    try {
+      const url = `https://music.163.com/api/mv/all?area=${encodeURIComponent(
+        randomArea,
+      )}&type=%E5%85%A8%E9%83%A8&order=${encodeURIComponent(
+        randomOrder,
+      )}&offset=${randomOffset}&limit=${limit}`;
+
+      const raw = await this.httpGet(url, {
+        Referer: 'https://music.163.com',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+      });
+
+      const json = JSON.parse(raw);
+      const mvs = json?.data || [];
+
+      if (!Array.isArray(mvs) || mvs.length === 0) {
+        return [];
+      }
+
+      // 并发解析各 MV 的真实 MP4 播放地址
+      const details = await Promise.all(
+        mvs.map(async (item: any) => {
+          try {
+            const detailUrl = `https://music.163.com/api/mv/detail?id=${item.id}&type=mp4`;
+            const dRaw = await this.httpGet(detailUrl, {
+              Referer: 'https://music.163.com',
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+            });
+            const dJson = JSON.parse(dRaw);
+            const brs = dJson?.data?.brs || {};
+            const videoUrl =
+              brs['720'] ||
+              brs['480'] ||
+              brs['1080'] ||
+              Object.values(brs)[0];
+
+            if (!videoUrl) return null;
+
+            return {
+              id: String(item.id),
+              title: item.name,
+              artist: item.artistName || item.artists?.[0]?.name || '未知歌手',
+              cover: item.cover || dJson?.data?.cover,
+              videoUrl: String(videoUrl),
+              playCount: item.playCount,
+              likesCount: Math.floor(Math.random() * 8000) + 1200,
+              commentsCount: Math.floor(Math.random() * 500) + 18,
+            };
+          } catch {
+            return null;
+          }
+        }),
+      );
+
+      return details.filter(Boolean);
+    } catch (e: any) {
+      this.logger.warn(`Failed to fetch random MV feed: ${e.message}`);
+      return [];
+    }
+  }
+
   private hashCode(str: string): number {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {

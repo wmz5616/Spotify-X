@@ -308,6 +308,20 @@ export class MusicLibraryController {
     return this.onlineMusicService.getSongMv(title.trim(), artist?.trim(), durNum);
   }
 
+  @ApiTags('Video')
+  @ApiOperation({
+    summary: '获取随机音乐视频流',
+    description: '随机获取网易云精选/热门/最新 MV 视频流列表',
+  })
+  @ApiQuery({ name: 'limit', required: false, description: '获取数量' })
+  @ApiSecurity('api-key')
+  @UseGuards(ApiKeyGuard)
+  @Get('mv/feed')
+  async getRandomMvFeed(@Query('limit') limit?: string) {
+    const limitNum = limit ? parseInt(limit, 10) : 12;
+    return this.onlineMusicService.getRandomMvFeed(limitNum);
+  }
+
   @ApiTags('Artists')
   @ApiOperation({
     summary: '获取所有艺术家',
