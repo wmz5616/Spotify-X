@@ -40,9 +40,11 @@ export default function ConditionalLayout({ children }: { children: React.ReactN
               : "overflow-y-auto custom-scrollbar bg-white dark:bg-[#121212]"
           )}
         >
-          <Suspense fallback={<div className="h-14 md:h-16" />}>
-            <Header />
-          </Suspense>
+          {!isVideoPage && (
+            <Suspense fallback={<div className="h-14 md:h-16" />}>
+              <Header />
+            </Suspense>
+          )}
           <div
             className={
               isVideoPage

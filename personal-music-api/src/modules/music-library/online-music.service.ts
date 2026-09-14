@@ -1858,24 +1858,50 @@ export class OnlineMusicService implements OnModuleInit {
               'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
             });
             const dJson = JSON.parse(dRaw);
-            const brs = dJson?.data?.brs || {};
-            const videoUrl =
+            const data = dJson?.data || {};
+            const brs = data?.brs || {};
+            let videoUrl =
+              brs['1080'] ||
               brs['720'] ||
               brs['480'] ||
-              brs['1080'] ||
               Object.values(brs)[0];
 
             if (!videoUrl) return null;
+
+            // 强制升级为 https，防止浏览器报 Mixed Content 警告
+            if (typeof videoUrl === 'string' && videoUrl.startsWith('http://')) {
+              videoUrl = videoUrl.replace('http://', 'https://');
+            }
+
+            let cover = data?.cover || item.cover;
+            if (typeof cover === 'string' && cover.startsWith('http://')) {
+              cover = cover.replace('http://', 'https://');
+            }
+
+            // 获取网易云真实点赞量与真实评论量
+            const realLikes =
+              typeof data?.likeCount === 'number' && data.likeCount >= 0
+                ? data.likeCount
+                : typeof item.likeCount === 'number' && item.likeCount >= 0
+                ? item.likeCount
+                : 0;
+
+            const realComments =
+              typeof data?.commentCount === 'number' && data.commentCount >= 0
+                ? data.commentCount
+                : typeof item.commentCount === 'number' && item.commentCount >= 0
+                ? item.commentCount
+                : 0;
 
             return {
               id: String(item.id),
               title: item.name,
               artist: item.artistName || item.artists?.[0]?.name || '未知歌手',
-              cover: item.cover || dJson?.data?.cover,
+              cover,
               videoUrl: String(videoUrl),
-              playCount: item.playCount,
-              likesCount: Math.floor(Math.random() * 8000) + 1200,
-              commentsCount: Math.floor(Math.random() * 500) + 18,
+              playCount: item.playCount || data?.playCount,
+              likesCount: realLikes,
+              commentsCount: realComments,
             };
           } catch {
             return null;

@@ -7,11 +7,6 @@ import {
   Heart,
   MessageSquare,
   Share2,
-  Volume2,
-  VolumeX,
-  RotateCw,
-  TvMinimalPlay,
-  Sparkles,
   Check,
   Plus,
 } from "lucide-react";
@@ -20,17 +15,17 @@ import { usePlayerStore } from "@/store/usePlayerStore";
 import { useToastStore } from "@/store/useToastStore";
 import { apiClient } from "@/lib/api-client";
 
-// 精选默认 MV 备选池（高清直链与元数据）
+// 精选默认 MV 备选池（1080P/720P 高清 HTTPS 直链与真实元数据）
 const DEFAULT_VIDEOS: FeedVideoItem[] = [
   {
     id: "14689667",
     title: "早发白帝城",
     artist: "许嵩",
     cover: "https://p1.music.126.net/jhNk0WOkMbDRbocmxt63uQ==/109951169258586066.jpg",
-    videoUrl: "https://vodkgeyttp8.vod.126.net/cloudmusic/5045/core/d844/bc63807c4b19d6739d72aa245789605a.mp4?wsSecret=082404dadafb5cbe7d942d499a42e5f5&wsTime=1789372435",
+    videoUrl: "https://vodkgeyttp8.vod.126.net/cloudmusic/5045/core/d844/6d46dec1aa3d93a1b243abaf157e8c50.mp4?wsSecret=c6c543d9ec20f84feef2f9e9cb4cc7de&wsTime=1789373585",
     playCount: "270.4万",
-    likesCount: 18920,
-    commentsCount: 842,
+    likesCount: 3810,
+    commentsCount: 1862,
     isLiked: false,
     isFollowed: false,
   },
@@ -41,8 +36,8 @@ const DEFAULT_VIDEOS: FeedVideoItem[] = [
     cover: "https://p1.music.126.net/ijUg7s_2S8GMbTNsYiepJA==/18676304511774727.jpg",
     videoUrl: "https://vodkgeyttp8.vod.126.net/cloudmusic/MjQ3NDQ3MjUw/89a6a279dc2acfcd068b45ce72b1f560/533e4183a709699d566180ed0cd9abe9.mp4?wsSecret=66363c32615960f7178d2e963b594eaa&wsTime=1789372435",
     playCount: "85.1万",
-    likesCount: 12430,
-    commentsCount: 390,
+    likesCount: 5214,
+    commentsCount: 968,
     isLiked: false,
     isFollowed: false,
   },
@@ -53,8 +48,8 @@ const DEFAULT_VIDEOS: FeedVideoItem[] = [
     cover: "https://p1.music.126.net/m3snLkz33qeJtVRjYIeHTQ==/109951163013469906.jpg",
     videoUrl: "https://vodkgeyttp8.vod.126.net/cloudmusic/mv/20170828101855/8df49678-f917-450f-b694-733308c8124d/f9ea20fa73cce47d88698516c9a83dba.mp4?wsSecret=ca90e42bd658f06010d87632dd92438b&wsTime=1789372435",
     playCount: "340.0万",
-    likesCount: 32610,
-    commentsCount: 1205,
+    likesCount: 28410,
+    commentsCount: 4210,
     isLiked: false,
     isFollowed: false,
   },
@@ -65,8 +60,8 @@ const DEFAULT_VIDEOS: FeedVideoItem[] = [
     cover: "https://p1.music.126.net/jy1BtkFM2urM20Sx069hRA==/109951164922166904.jpg",
     videoUrl: "https://vodkgeyttp8.vod.126.net/cloudmusic/obj/core/2244802781/27eb282fe9ea954e17b6c3a9bc4c5fae.mp4?wsSecret=82046dc979fa743fa644e4cd689bbb14&wsTime=1789372435",
     playCount: "7.6万",
-    likesCount: 5410,
-    commentsCount: 148,
+    likesCount: 1845,
+    commentsCount: 312,
     isLiked: false,
     isFollowed: false,
   },
@@ -77,8 +72,8 @@ const DEFAULT_VIDEOS: FeedVideoItem[] = [
     cover: "https://p1.music.126.net/CLNUCm2DcpmLDrciXal9Xg==/19209567648893216.jpg",
     videoUrl: "https://vodkgeyttp8.vod.126.net/cloudmusic/MTc2NDc4Nzc=/108a81cb487490b6483d4858c26de894/6b0b55ab041ee491a8e458efb4dbd5c8.mp4?wsSecret=023168626c59f78b53ff3054757497c4&wsTime=1789372435",
     playCount: "2.9万",
-    likesCount: 3200,
-    commentsCount: 92,
+    likesCount: 890,
+    commentsCount: 145,
     isLiked: false,
     isFollowed: false,
   },
@@ -89,8 +84,8 @@ const DEFAULT_VIDEOS: FeedVideoItem[] = [
     cover: "https://p1.music.126.net/GYQ5Sxeam_Gt-5uKHuQPjA==/3419481171413759.jpg",
     videoUrl: "https://vodkgeyttp8.vod.126.net/cloudmusic/Nzg5MzEyMTY=/a7a7cb62c0e6207a680b74ec1a70ca64/34e181f9d6c3842463948a60310e3063.mp4?wsSecret=195fd3f82f82d32aee6b41ce19286346&wsTime=1789372435",
     playCount: "3.0万",
-    likesCount: 2890,
-    commentsCount: 65,
+    likesCount: 960,
+    commentsCount: 112,
     isLiked: false,
     isFollowed: false,
   },
@@ -98,6 +93,7 @@ const DEFAULT_VIDEOS: FeedVideoItem[] = [
 
 export default function VideoFeedPage() {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const progressBarRef = useRef<HTMLDivElement | null>(null);
   const videoRefs = useRef<Map<number, HTMLVideoElement>>(new Map());
 
   const {
@@ -118,15 +114,12 @@ export default function VideoFeedPage() {
   const { addToast } = useToastStore();
   const { isPlaying: isAudioPlaying, togglePlayPause: toggleAudioPlayPause } = usePlayerStore();
 
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
-  const [showPlayIcon, setShowPlayIcon] = useState(false);
   const [playProgress, setPlayProgress] = useState(0);
+  const [isSeeking, setIsSeeking] = useState(false);
 
-  // 1. 获取/刷新随机视频
+  // 1. 获取/刷新随机视频（真实点赞评论量 & 默认优先 1080P）
   const fetchRandomVideos = useCallback(
     async (isRefresh = false) => {
-      if (isRefresh) setIsRefreshing(true);
       try {
         const res = await apiClient<FeedVideoItem[]>("/api/mv/feed?limit=10").catch(
           () => null
@@ -134,7 +127,6 @@ export default function VideoFeedPage() {
 
         if (Array.isArray(res) && res.length > 0) {
           if (isRefresh || videoList.length === 0) {
-            // 洗牌随机并更新列表
             const shuffled = [...res].sort(() => Math.random() - 0.5);
             setVideoList(shuffled);
             setCurrentIndex(0);
@@ -142,7 +134,6 @@ export default function VideoFeedPage() {
             appendVideos(res);
           }
         } else {
-          // 降级使用默认高质量视频
           if (videoList.length === 0) {
             const shuffled = [...DEFAULT_VIDEOS].sort(() => Math.random() - 0.5);
             setVideoList(shuffled);
@@ -152,14 +143,9 @@ export default function VideoFeedPage() {
         if (videoList.length === 0) {
           setVideoList(DEFAULT_VIDEOS);
         }
-      } finally {
-        if (isRefresh) {
-          setTimeout(() => setIsRefreshing(false), 500);
-          addToast("已刷新视频流");
-        }
       }
     },
-    [videoList.length, setVideoList, appendVideos, setCurrentIndex, addToast]
+    [videoList.length, setVideoList, appendVideos, setCurrentIndex]
   );
 
   // 初始化加载
@@ -169,19 +155,18 @@ export default function VideoFeedPage() {
     }
   }, [isInitialized, videoList.length, fetchRandomVideos]);
 
-  // 进入视频页时，若有背景音乐在播放则先暂停，避免双重声音
+  // 进入视频页时，若有背景音乐在播放则先暂停，避免双重声音打架
   useEffect(() => {
     if (isAudioPlaying) {
       toggleAudioPlayPause();
     }
   }, []);
 
-  // 2. 切页返回时恢复之前停留的视频卡片位置及播放时间戳
+  // 2. 切页返回时恢复之前停留的视频卡片位置及播放时间戳（视频默认有声音）
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
-    // 滚动到上次播放的索引项
     const targetItem = container.children[currentIndex] as HTMLElement;
     if (targetItem) {
       targetItem.scrollIntoView({ behavior: "instant" as ScrollBehavior });
@@ -189,6 +174,7 @@ export default function VideoFeedPage() {
 
     const currentVideo = videoRefs.current.get(currentIndex);
     if (currentVideo) {
+      currentVideo.muted = false;
       if (savedTime > 0 && Math.abs(currentVideo.currentTime - savedTime) > 0.5) {
         currentVideo.currentTime = savedTime;
       }
@@ -209,7 +195,7 @@ export default function VideoFeedPage() {
     };
   }, [currentIndex, isInitialized]);
 
-  // 3. 上下滑动吸附与可见度监听（上下滑动切换自动播放）
+  // 3. 上下滑动吸附与可见度监听（滑入视口自动播放，默认有声音）
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -221,9 +207,7 @@ export default function VideoFeedPage() {
           const video = videoRefs.current.get(index);
 
           if (entry.isIntersecting && entry.intersectionRatio >= 0.6) {
-            // 当前卡片成为主视口视频
             if (index !== currentIndex) {
-              // 暂停上一个
               const prevVideo = videoRefs.current.get(currentIndex);
               if (prevVideo) {
                 prevVideo.pause();
@@ -233,11 +217,11 @@ export default function VideoFeedPage() {
             }
 
             if (video) {
+              video.muted = false;
               video.play().catch(() => {});
               setIsPlaying(true);
             }
           } else {
-            // 移出视口自动暂停
             if (video) {
               video.pause();
             }
@@ -259,32 +243,90 @@ export default function VideoFeedPage() {
     };
   }, [videoList.length, currentIndex, setCurrentIndex, setIsPlaying]);
 
-  // 4. 单击切换播放/暂停
+  // 4. 单击屏幕中央切换播放/暂停
   const handleTogglePlay = (e: React.MouseEvent) => {
     e.stopPropagation();
     const currentVideo = videoRefs.current.get(currentIndex);
     if (!currentVideo) return;
 
     if (currentVideo.paused) {
+      currentVideo.muted = false;
       currentVideo.play().catch(() => {});
       setIsPlaying(true);
-      setShowPlayIcon(false);
     } else {
       currentVideo.pause();
       setIsPlaying(false);
-      setShowPlayIcon(true);
       setSavedTime(currentVideo.currentTime);
     }
   };
 
-  // 5. 视频时间更新
+  // 5. 视频播放时间更新（非拖拽时更新进度）
   const handleTimeUpdate = (e: React.SyntheticEvent<HTMLVideoElement>) => {
+    if (isSeeking) return;
     const target = e.currentTarget;
     if (target.duration > 0) {
       const p = (target.currentTime / target.duration) * 100;
       setPlayProgress(p);
       setSavedTime(target.currentTime);
     }
+  };
+
+  // 6. 进度条点击与拖拽跳转逻辑
+  const handleSeek = (clientX: number) => {
+    const bar = progressBarRef.current;
+    const currentVideo = videoRefs.current.get(currentIndex);
+    if (!bar || !currentVideo || !currentVideo.duration) return;
+
+    const rect = bar.getBoundingClientRect();
+    const clickX = Math.max(0, Math.min(clientX - rect.left, rect.width));
+    const percentage = clickX / rect.width;
+    const newTime = percentage * currentVideo.duration;
+
+    currentVideo.currentTime = newTime;
+    setPlayProgress(percentage * 100);
+    setSavedTime(newTime);
+  };
+
+  const handleProgressBarMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    setIsSeeking(true);
+    handleSeek(e.clientX);
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      handleSeek(moveEvent.clientX);
+    };
+
+    const handleMouseUp = () => {
+      setIsSeeking(false);
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+  };
+
+  const handleProgressBarTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    setIsSeeking(true);
+    if (e.touches[0]) {
+      handleSeek(e.touches[0].clientX);
+    }
+
+    const handleTouchMove = (moveEvent: TouchEvent) => {
+      if (moveEvent.touches[0]) {
+        handleSeek(moveEvent.touches[0].clientX);
+      }
+    };
+
+    const handleTouchEnd = () => {
+      setIsSeeking(false);
+      window.removeEventListener("touchmove", handleTouchMove);
+      window.removeEventListener("touchend", handleTouchEnd);
+    };
+
+    window.addEventListener("touchmove", handleTouchMove);
+    window.addEventListener("touchend", handleTouchEnd);
   };
 
   // 分享功能
@@ -307,44 +349,6 @@ export default function VideoFeedPage() {
 
   return (
     <div className="relative w-full h-[calc(100vh-56px)] md:h-[calc(100vh-90px)] bg-black text-white select-none overflow-hidden">
-      {/* 顶部极简操作栏：仅保留“视频”指示与“随机刷新”按钮，完全无搜索栏 */}
-      <div className="absolute top-0 left-0 right-0 z-30 flex items-center justify-between px-4 py-3 bg-gradient-to-b from-black/80 via-black/40 to-transparent pointer-events-none">
-        <div className="flex items-center gap-2 pointer-events-auto">
-          <TvMinimalPlay className="text-[#1ed760]" size={20} />
-          <span className="font-bold text-sm sm:text-base tracking-wide text-white drop-shadow-md">
-            视频专区
-          </span>
-          <span className="text-[10px] text-neutral-300 bg-white/10 backdrop-blur-md px-2 py-0.5 rounded-full border border-white/10 hidden sm:inline">
-            沉浸双击 · 滑动切换
-          </span>
-        </div>
-
-        <div className="flex items-center gap-2 pointer-events-auto">
-          {/* 静音切换 */}
-          <button
-            onClick={() => setIsMuted(!isMuted)}
-            className="w-9 h-9 rounded-full bg-black/40 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/90 hover:text-white hover:bg-black/60 transition-all active:scale-95"
-            title={isMuted ? "取消静音" : "静音"}
-          >
-            {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
-          </button>
-
-          {/* 随机刷新 */}
-          <button
-            onClick={() => fetchRandomVideos(true)}
-            disabled={isRefreshing}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/40 backdrop-blur-md border border-white/10 text-xs font-semibold text-white/90 hover:text-white hover:bg-black/60 transition-all active:scale-95 disabled:opacity-50"
-            title="随机刷新"
-          >
-            <RotateCw
-              size={13}
-              className={`text-[#1ed760] ${isRefreshing ? "animate-spin" : ""}`}
-            />
-            <span className="hidden xs:inline">随机刷新</span>
-          </button>
-        </div>
-      </div>
-
       {/* 竖向全屏滚动容器（CSS Scroll Snap） */}
       <div
         ref={containerRef}
@@ -362,13 +366,13 @@ export default function VideoFeedPage() {
               onClick={handleTogglePlay}
               className="relative w-full h-full snap-start snap-always shrink-0 flex items-center justify-center bg-black overflow-hidden cursor-pointer"
             >
-              {/* 背景封面微模糊底图（防止视频黑边突兀） */}
+              {/* 背景封面微模糊底图（柔和过渡，消除黑边突兀） */}
               <div
                 className="absolute inset-0 bg-cover bg-center blur-2xl opacity-25 scale-110 pointer-events-none"
                 style={{ backgroundImage: `url(${item.cover})` }}
               />
 
-              {/* 核心视频播放器 */}
+              {/* 核心视频播放器（默认有声音，无视口静音限制） */}
               <video
                 ref={(el) => {
                   if (el) {
@@ -381,11 +385,19 @@ export default function VideoFeedPage() {
                 poster={item.cover}
                 loop
                 playsInline
-                muted={isMuted}
+                muted={false}
                 preload={Math.abs(idx - currentIndex) <= 1 ? "auto" : "none"}
                 onTimeUpdate={isCurrent ? handleTimeUpdate : undefined}
                 className="w-full h-full object-contain relative z-10"
               />
+
+              {/* 左上角精选徽章浮层（精美半透明遮盖水印区域） */}
+              <div
+                className="absolute top-3.5 left-3.5 z-20 pointer-events-none flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/60 backdrop-blur-md border border-white/10 shadow-lg text-white"
+              >
+                <div className="w-2 h-2 rounded-full bg-[#1ed760] animate-pulse" />
+                <span className="text-xs font-semibold tracking-wider">SPOTIFY MV</span>
+              </div>
 
               {/* 中央大播放图标（暂停时显式展示） */}
               {isCurrent && !isPlaying && (
@@ -396,9 +408,9 @@ export default function VideoFeedPage() {
                 </div>
               )}
 
-              {/* 右侧互动悬浮按钮条（仿抖音/QQ音乐视频） */}
+              {/* 右侧互动悬浮按钮条（真实点赞与评论数据展示） */}
               <div
-                className="absolute right-3.5 sm:right-6 bottom-24 sm:bottom-28 z-30 flex flex-col items-center gap-5 pointer-events-auto"
+                className="absolute right-3.5 sm:right-6 bottom-20 sm:bottom-24 z-30 flex flex-col items-center gap-5 pointer-events-auto"
                 onClick={(e) => e.stopPropagation()}
               >
                 {/* 1. 歌手头像与关注加号 */}
@@ -425,7 +437,7 @@ export default function VideoFeedPage() {
                   </button>
                 </div>
 
-                {/* 2. 点赞 / 收藏 */}
+                {/* 2. 真实点赞量 */}
                 <div className="flex flex-col items-center gap-1">
                   <button
                     onClick={() => toggleLike(item.id)}
@@ -441,15 +453,15 @@ export default function VideoFeedPage() {
                     />
                   </button>
                   <span className="text-[11px] font-bold text-white drop-shadow">
-                    {item.likesCount
+                    {item.likesCount !== undefined && item.likesCount > 0
                       ? item.likesCount > 9999
                         ? (item.likesCount / 10000).toFixed(1) + "w"
                         : item.likesCount
-                      : "收藏"}
+                      : "点赞"}
                   </span>
                 </div>
 
-                {/* 3. 评论数 */}
+                {/* 3. 真实评论量 */}
                 <div className="flex flex-col items-center gap-1">
                   <button
                     onClick={() => addToast("评论区正在开放中")}
@@ -458,7 +470,11 @@ export default function VideoFeedPage() {
                     <MessageSquare size={22} className="fill-white/20 text-white" />
                   </button>
                   <span className="text-[11px] font-bold text-white drop-shadow">
-                    {item.commentsCount || 88}
+                    {item.commentsCount !== undefined && item.commentsCount > 0
+                      ? item.commentsCount > 9999
+                        ? (item.commentsCount / 10000).toFixed(1) + "w"
+                        : item.commentsCount
+                      : "评论"}
                   </span>
                 </div>
 
@@ -474,9 +490,9 @@ export default function VideoFeedPage() {
                 </div>
               </div>
 
-              {/* 底部信息浮层：歌手名、关注按钮、歌曲标题 */}
+              {/* 底部信息浮层：已移除观看次数与分辨率标签，只保留歌手名与视频标题 */}
               <div
-                className="absolute left-4 right-20 bottom-16 sm:bottom-20 z-30 pointer-events-auto flex flex-col gap-1.5"
+                className="absolute left-4 right-20 bottom-8 sm:bottom-10 z-30 pointer-events-auto flex flex-col gap-1.5"
                 onClick={(e) => e.stopPropagation()}
               >
                 {/* 歌手名与关注胶囊 */}
@@ -500,25 +516,25 @@ export default function VideoFeedPage() {
                 <p className="text-xs sm:text-sm text-neutral-100 font-medium line-clamp-2 leading-relaxed drop-shadow-sm max-w-lg">
                   {item.title}
                 </p>
-
-                {/* 播放次数与高清标签 */}
-                <div className="flex items-center gap-2 mt-0.5 text-[11px] text-neutral-300 drop-shadow">
-                  <span className="flex items-center gap-1">
-                    <Sparkles size={11} className="text-[#1ed760]" />
-                    {item.playCount} 次观看
-                  </span>
-                  <span>·</span>
-                  <span className="text-[#1ed760] font-mono font-semibold">1080P HD</span>
-                </div>
               </div>
 
-              {/* 底部紧贴滑动进度条 */}
+              {/* 底部支持拖拽与点击跳转的动态视频进度条 */}
               {isCurrent && (
-                <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-white/15 z-30 pointer-events-none">
-                  <div
-                    className="h-full bg-[#1ed760] transition-all duration-100 shadow-[0_0_8px_rgba(30,215,96,0.8)]"
-                    style={{ width: `${playProgress}%` }}
-                  />
+                <div
+                  ref={progressBarRef}
+                  onMouseDown={handleProgressBarMouseDown}
+                  onTouchStart={handleProgressBarTouchStart}
+                  className="absolute bottom-0 left-0 right-0 h-4 flex items-end cursor-pointer z-40 group/progress"
+                >
+                  <div className="w-full h-[3px] group-hover/progress:h-[5px] bg-white/20 transition-all relative">
+                    <div
+                      className="h-full bg-[#1ed760] transition-all duration-75 relative shadow-[0_0_8px_rgba(30,215,96,0.8)]"
+                      style={{ width: `${playProgress}%` }}
+                    >
+                      {/* 进度条拖拽手柄圆形浮标 */}
+                      <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-3 h-3 rounded-full bg-white shadow-md opacity-0 group-hover/progress:opacity-100 transition-opacity" />
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
