@@ -116,27 +116,27 @@ export default function VideoFeedPage() {
 
   const [playProgress, setPlayProgress] = useState(0);
   const [isSeeking, setIsSeeking] = useState(false);
+  const isLoadingMoreRef = useRef(false);
 
-  // 1. 获取/刷新随机视频（真实点赞评论量 & 默认优先 1080P）
+  // 1. 获取/刷新随机视频（服务端已按官方MV>其他优先级排序，优先采用QQ音乐1080P超清无水印源）
   const fetchRandomVideos = useCallback(
     async (isRefresh = false) => {
       try {
-        const res = await apiClient<FeedVideoItem[]>("/api/mv/feed?limit=10").catch(
+        const res = await apiClient<FeedVideoItem[]>("/api/mv/feed?limit=15&offset=0").catch(
           () => null
         );
 
         if (Array.isArray(res) && res.length > 0) {
           if (isRefresh || videoList.length === 0) {
-            const shuffled = [...res].sort(() => Math.random() - 0.5);
-            setVideoList(shuffled);
+            // 保持服务端精心编排的官方MV高品质优先序列
+            setVideoList(res);
             setCurrentIndex(0);
           } else {
             appendVideos(res);
           }
         } else {
           if (videoList.length === 0) {
-            const shuffled = [...DEFAULT_VIDEOS].sort(() => Math.random() - 0.5);
-            setVideoList(shuffled);
+            setVideoList(DEFAULT_VIDEOS);
           }
         }
       } catch {
@@ -147,6 +147,26 @@ export default function VideoFeedPage() {
     },
     [videoList.length, setVideoList, appendVideos, setCurrentIndex]
   );
+
+  // 触底无限流加载：当即将滑到列表底部时，自动静默请求下一批高品质MV并平滑追加
+  const loadMoreVideos = useCallback(async () => {
+    if (isLoadingMoreRef.current) return;
+    isLoadingMoreRef.current = true;
+    try {
+      const nextOffset = videoList.length;
+      const res = await apiClient<FeedVideoItem[]>(
+        `/api/mv/feed?limit=15&offset=${nextOffset}`
+      ).catch(() => null);
+
+      if (Array.isArray(res) && res.length > 0) {
+        appendVideos(res);
+      }
+    } finally {
+      setTimeout(() => {
+        isLoadingMoreRef.current = false;
+      }, 600);
+    }
+  }, [videoList.length, appendVideos]);
 
   // 初始化加载
   useEffect(() => {
@@ -195,7 +215,7 @@ export default function VideoFeedPage() {
     };
   }, [currentIndex, isInitialized]);
 
-  // 3. 上下滑动吸附与可见度监听（滑入视口自动播放，默认有声音）
+  // 3. 上下滑动吸附与可见度监听（滑入视口自动播放，默认有声音，无限流提前加载）
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -221,6 +241,11 @@ export default function VideoFeedPage() {
               video.play().catch(() => { });
               setIsPlaying(true);
             }
+
+            // 无限流触发：当滑动到最后 3 个视频以内时，提前自动加载下一批视频并平滑追加
+            if (index >= videoList.length - 3) {
+              loadMoreVideos();
+            }
           } else {
             if (video) {
               video.pause();
@@ -238,10 +263,22 @@ export default function VideoFeedPage() {
       observer.observe(child);
     });
 
+    // 监听容器滚动，作为触底检测双重保障
+    const handleScroll = () => {
+      if (
+        container.scrollHeight - (container.scrollTop + container.clientHeight) <
+        container.clientHeight * 2
+      ) {
+        loadMoreVideos();
+      }
+    };
+    container.addEventListener("scroll", handleScroll, { passive: true });
+
     return () => {
       observer.disconnect();
+      container.removeEventListener("scroll", handleScroll);
     };
-  }, [videoList.length, currentIndex, setCurrentIndex, setIsPlaying]);
+  }, [videoList.length, currentIndex, setCurrentIndex, setIsPlaying, loadMoreVideos]);
 
   // 4. 单击屏幕中央切换播放/暂停
   const handleTogglePlay = (e: React.MouseEvent) => {

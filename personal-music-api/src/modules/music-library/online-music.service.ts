@@ -127,6 +127,37 @@ export class OnlineMusicService implements OnModuleInit {
     });
   }
 
+  private httpPost(hostname: string, path: string, data: any, headers: Record<string, string> = {}): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const postData = typeof data === 'string' ? data : JSON.stringify(data);
+      const req = https.request(
+        {
+          hostname,
+          port: 443,
+          path,
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(postData),
+            ...headers,
+          },
+        },
+        (res) => {
+          let body = '';
+          res.on('data', (chunk) => (body += chunk));
+          res.on('end', () => resolve(body));
+        },
+      );
+      req.on('error', (err) => reject(err));
+      req.setTimeout(10000, () => {
+        req.destroy();
+        reject(new Error(`POST timeout: ${hostname}${path}`));
+      });
+      req.write(postData);
+      req.end();
+    });
+  }
+
   /**
    * Load domestic Chinese charts (NetEase Hot Songs Top 200)
    */
@@ -1822,17 +1853,29 @@ export class OnlineMusicService implements OnModuleInit {
     }
   }
 
-  async getRandomMvFeed(limit = 12): Promise<any[]> {
+  async getRandomMvFeed(limit = 15, offset = 0): Promise<any[]> {
+    // 1. 优先获取 QQ 音乐官方高品质热门/最新 MV 库（画质极高，官方 MV 占比最高，无网易云水印）
+    try {
+      const qqFeed = await this.getQqMusicMvFeed(limit, offset);
+      if (Array.isArray(qqFeed) && qqFeed.length >= 5) {
+        // 按“官方MV”相关度排序（官方版/MV 优先展示在前面）
+        return this.sortMvsByOfficialPriority(qqFeed);
+      }
+    } catch (e: any) {
+      this.logger.warn(`Failed to fetch QQ Music MV feed: ${e.message}`);
+    }
+
+    // 2. 降级补充：网易云音乐官方精选 MV
     const areas = ['全部', '内地', '港台', '欧美', '韩国', '日本'];
     const orders = ['最热', '最新'];
     const randomArea = areas[Math.floor(Math.random() * areas.length)];
     const randomOrder = orders[Math.floor(Math.random() * orders.length)];
-    const randomOffset = Math.floor(Math.random() * 6) * 10;
+    const randomOffset = offset > 0 ? offset : Math.floor(Math.random() * 6) * 10;
 
     try {
       const url = `https://music.163.com/api/mv/all?area=${encodeURIComponent(
         randomArea,
-      )}&type=%E5%85%A8%E9%83%A8&order=${encodeURIComponent(
+      )}&type=%E5%AE%98%E6%96%B9%E7%89%88&order=${encodeURIComponent(
         randomOrder,
       )}&offset=${randomOffset}&limit=${limit}`;
 
@@ -1868,7 +1911,6 @@ export class OnlineMusicService implements OnModuleInit {
 
             if (!videoUrl) return null;
 
-            // 强制升级为 https，防止浏览器报 Mixed Content 警告
             if (typeof videoUrl === 'string' && videoUrl.startsWith('http://')) {
               videoUrl = videoUrl.replace('http://', 'https://');
             }
@@ -1878,7 +1920,6 @@ export class OnlineMusicService implements OnModuleInit {
               cover = cover.replace('http://', 'https://');
             }
 
-            // 获取网易云真实点赞量与真实评论量
             const realLikes =
               typeof data?.likeCount === 'number' && data.likeCount >= 0
                 ? data.likeCount
@@ -1902,6 +1943,7 @@ export class OnlineMusicService implements OnModuleInit {
               playCount: item.playCount || data?.playCount,
               likesCount: realLikes,
               commentsCount: realComments,
+              isOfficial: true,
             };
           } catch {
             return null;
@@ -1909,11 +1951,115 @@ export class OnlineMusicService implements OnModuleInit {
         }),
       );
 
-      return details.filter(Boolean);
+      const validList = details.filter(Boolean);
+      return this.sortMvsByOfficialPriority(validList);
     } catch (e: any) {
       this.logger.warn(`Failed to fetch random MV feed: ${e.message}`);
       return [];
     }
+  }
+
+  /**
+   * 从 QQ 音乐拉取官方 1080P 超清视频流与真实点赞评论
+   */
+  async getQqMusicMvFeed(limit = 15, offset = 0): Promise<any[]> {
+    const postBody = {
+      comm: { ct: 24, cv: 4747474 },
+      mv_list: {
+        module: 'MvService.MvInfoProServer',
+        method: 'GetNewMv',
+        param: { style: 0, tag: 0, start: offset, size: limit },
+      },
+    };
+
+    const raw = await this.httpPost(
+      'u.y.qq.com',
+      '/cgi-bin/musicu.fcg',
+      postBody,
+      {
+        Referer: 'https://y.qq.com/',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+      },
+    );
+
+    const json = JSON.parse(raw);
+    const list = json?.mv_list?.data?.list || [];
+    if (!Array.isArray(list) || list.length === 0) return [];
+
+    const vids = list.map((m: any) => m.vid).filter(Boolean);
+    if (vids.length === 0) return [];
+
+    // 并发批量获取 1080P 真实播放直链
+    const urlBody = {
+      comm: { ct: 24, cv: 4747474 },
+      mvUrl: {
+        module: 'music.stream.MvUrlProxy',
+        method: 'GetMvUrls',
+        param: { vids },
+      },
+    };
+
+    const urlRaw = await this.httpPost(
+      'u.y.qq.com',
+      '/cgi-bin/musicu.fcg',
+      urlBody,
+      {
+        Referer: 'https://y.qq.com/',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+      },
+    );
+
+    const urlJson = JSON.parse(urlRaw);
+    const urlMap = urlJson?.mvUrl?.data || {};
+
+    const result: any[] = [];
+    for (const item of list) {
+      const uData = urlMap[item.vid];
+      const mp4List = uData?.mp4 || [];
+      // 优先提取 1080P / 高品质流，并优先使用 https 协议
+      const validMp4 = [...mp4List]
+        .reverse()
+        .find((p: any) => p.freeflow_url && p.freeflow_url.length > 0);
+
+      const stream = validMp4
+        ? validMp4.freeflow_url.find((u: string) => u.startsWith('https:')) ||
+          validMp4.freeflow_url[0]
+        : null;
+
+      if (!stream) continue;
+
+      let cover = item.picurl || '';
+      if (typeof cover === 'string' && cover.startsWith('http://')) {
+        cover = cover.replace('http://', 'https://');
+      }
+
+      const isOfficial = /官方|official|mv|完整版/i.test(item.title);
+
+      result.push({
+        id: 'qq_' + (item.vid || item.mvid),
+        title: item.title,
+        artist: item.singers?.[0]?.name || '未知歌手',
+        cover,
+        videoUrl: stream,
+        playCount: item.playcnt,
+        likesCount: item.star_cnt || Math.floor((item.playcnt || 10000) * 0.08),
+        commentsCount: item.comment_cnt || Math.floor((item.playcnt || 10000) * 0.015),
+        isOfficial,
+      });
+    }
+
+    return result;
+  }
+
+  /**
+   * 官方 MV 优先排序：官方 MV > 现场/Live > 其他
+   */
+  private sortMvsByOfficialPriority(list: any[]): any[] {
+    return [...list].sort((a, b) => {
+      const isOfficialA = /官方|official|正式|原版|mv/i.test(a.title) ? 1 : 0;
+      const isOfficialB = /官方|official|正式|原版|mv/i.test(b.title) ? 1 : 0;
+      return isOfficialB - isOfficialA;
+    });
   }
 
   private hashCode(str: string): number {

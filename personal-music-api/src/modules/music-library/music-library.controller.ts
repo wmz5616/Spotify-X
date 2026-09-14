@@ -314,12 +314,17 @@ export class MusicLibraryController {
     description: '随机获取网易云精选/热门/最新 MV 视频流列表',
   })
   @ApiQuery({ name: 'limit', required: false, description: '获取数量' })
+  @ApiQuery({ name: 'offset', required: false, description: '偏移量（分页）' })
   @ApiSecurity('api-key')
   @UseGuards(ApiKeyGuard)
   @Get('mv/feed')
-  async getRandomMvFeed(@Query('limit') limit?: string) {
-    const limitNum = limit ? parseInt(limit, 10) : 12;
-    return this.onlineMusicService.getRandomMvFeed(limitNum);
+  async getRandomMvFeed(
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
+  ) {
+    const limitNum = limit ? parseInt(limit, 10) : 15;
+    const offsetNum = offset ? parseInt(offset, 10) : 0;
+    return this.onlineMusicService.getRandomMvFeed(limitNum, offsetNum);
   }
 
   @ApiTags('Artists')
