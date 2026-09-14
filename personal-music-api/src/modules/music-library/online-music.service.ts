@@ -115,9 +115,13 @@ export class OnlineMusicService implements OnModuleInit {
         if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
           return this.httpGet(res.headers.location, headers).then(resolve).catch(reject);
         }
-        let data = '';
-        res.on('data', (chunk) => (data += chunk));
-        res.on('end', () => resolve(data));
+        const chunks: Buffer[] = [];
+        res.on('data', (chunk) => chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)));
+        res.on('end', () => {
+          // 先将所有二进制分片完整拼接，再统一用 UTF-8 解码，彻底解决多字节汉字在分包边界被截断导致乱码(如\uFFFD菱形问号)的问题
+          const fullBuf = Buffer.concat(chunks);
+          resolve(fullBuf.toString('utf8'));
+        });
       });
       req.on('error', (err) => reject(err));
       req.setTimeout(10000, () => {
@@ -143,9 +147,13 @@ export class OnlineMusicService implements OnModuleInit {
           },
         },
         (res) => {
-          let body = '';
-          res.on('data', (chunk) => (body += chunk));
-          res.on('end', () => resolve(body));
+          const chunks: Buffer[] = [];
+          res.on('data', (chunk) => chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)));
+          res.on('end', () => {
+            // 先拼接完整二进制缓冲，再按 UTF-8 解码，避免中文多字节截断乱码
+            const fullBuf = Buffer.concat(chunks);
+            resolve(fullBuf.toString('utf8'));
+          });
         },
       );
       req.on('error', (err) => reject(err));
@@ -2037,8 +2045,8 @@ export class OnlineMusicService implements OnModuleInit {
 
       result.push({
         id: 'qq_' + (item.vid || item.mvid),
-        title: item.title,
-        artist: item.singers?.[0]?.name || '未知歌手',
+        title: this.cleanUtf8(item.title),
+        artist: this.cleanUtf8(item.singers?.[0]?.name || '未知歌手'),
         cover,
         videoUrl: stream,
         playCount: item.playcnt,
@@ -2049,6 +2057,14 @@ export class OnlineMusicService implements OnModuleInit {
     }
 
     return result;
+  }
+
+  /**
+   * 清理非法 UTF-8 占位符或截断导致的替换字符 (\uFFFD / \u0000)
+   */
+  private cleanUtf8(str?: string): string {
+    if (!str) return '';
+    return str.replace(/[\uFFFD\u0000]/g, '').trim();
   }
 
   /**

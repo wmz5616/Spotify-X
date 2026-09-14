@@ -527,7 +527,7 @@ export default function VideoFeedPage() {
                 {/* 歌手名与关注胶囊 */}
                 <div className="flex items-center gap-2">
                   <h2 className="text-base sm:text-lg font-bold text-white tracking-wide drop-shadow-md">
-                    @{item.artist}
+                    @{item.artist?.replace(/[\uFFFD\u0000]/g, "") || "未知歌手"}
                   </h2>
                   <button
                     onClick={() => toggleFollow(item.id)}
@@ -543,7 +543,7 @@ export default function VideoFeedPage() {
 
                 {/* 视频标题 */}
                 <p className="text-xs sm:text-sm text-neutral-100 font-medium line-clamp-2 leading-relaxed drop-shadow-sm max-w-lg">
-                  {item.title}
+                  {item.title?.replace(/[\uFFFD\u0000]/g, "") || ""}
                 </p>
               </div>
 

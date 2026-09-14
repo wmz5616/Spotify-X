@@ -774,6 +774,6 @@ export class MusicLibraryService {
   }
 
   private sanitizeString(str: string | undefined): string {
-    return str ? str.replace(/\u0000/g, '').trim() : '';
+    return str ? str.replace(/[\u0000\uFFFD]/g, '').trim() : '';
   }
 }
