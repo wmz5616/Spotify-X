@@ -218,7 +218,7 @@ export default function VideoFeedPage() {
 
             if (video) {
               video.muted = false;
-              video.play().catch(() => {});
+              video.play().catch(() => { });
               setIsPlaying(true);
             }
           } else {
@@ -251,7 +251,7 @@ export default function VideoFeedPage() {
 
     if (currentVideo.paused) {
       currentVideo.muted = false;
-      currentVideo.play().catch(() => {});
+      currentVideo.play().catch(() => { });
       setIsPlaying(true);
     } else {
       currentVideo.pause();
@@ -339,7 +339,7 @@ export default function VideoFeedPage() {
           url: window.location.href,
         });
         return;
-      } catch {}
+      } catch { }
     }
     if (navigator.clipboard) {
       await navigator.clipboard.writeText(window.location.href);
@@ -390,14 +390,6 @@ export default function VideoFeedPage() {
                 onTimeUpdate={isCurrent ? handleTimeUpdate : undefined}
                 className="w-full h-full object-contain relative z-10"
               />
-
-              {/* 左上角精选徽章浮层（精美半透明遮盖水印区域） */}
-              <div
-                className="absolute top-3.5 left-3.5 z-20 pointer-events-none flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/60 backdrop-blur-md border border-white/10 shadow-lg text-white"
-              >
-                <div className="w-2 h-2 rounded-full bg-[#1ed760] animate-pulse" />
-                <span className="text-xs font-semibold tracking-wider">SPOTIFY MV</span>
-              </div>
 
               {/* 中央大播放图标（暂停时显式展示） */}
               {isCurrent && !isPlaying && (

@@ -126,7 +126,7 @@ const Header = () => {
     <header
       suppressHydrationWarning
       className={clsx(
-        "sticky -top-[1px] pt-[1px] z-50 h-14 md:h-16 px-4 md:px-6 items-center justify-between transition-all duration-300 ease-in-out relative select-none",
+        "sticky -top-[1px] pt-[1px] z-50 h-14 md:h-16 px-4 md:px-6 items-center justify-between transition-all duration-300 ease-in-out select-none",
         isDetailPage ? "hidden md:flex" : "flex",
         isVideoPage && "hidden md:flex",
         isScrolled
