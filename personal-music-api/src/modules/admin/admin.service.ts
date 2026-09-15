@@ -43,7 +43,7 @@ export class AdminService {
         return this.prisma.artist.findMany({
             include: {
                 _count: {
-                    select: { albums: true, followers: true }
+                    select: { albums: true }
                 }
             },
             orderBy: { name: 'asc' },

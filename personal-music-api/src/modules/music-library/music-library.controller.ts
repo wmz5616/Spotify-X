@@ -609,7 +609,10 @@ export class MusicLibraryController {
     // 2. Otherwise, resolve from online streaming service!
     const onlineUrl = await this.onlineMusicService.resolveStreamUrl(id);
     if (onlineUrl) {
-      return this.streamRemoteUrl(onlineUrl, request, response, id);
+      // 客户端 302 直接重定向到 CDN 极速拉取播放！
+      // 核心解决：海外部署节点（如 Render）直连国内移动/网易云 CDN 节点（211.162.170.x）会被国内防火墙直接丢包导致 ETIMEDOUT 超时。
+      // 302 重定向让处于国内网络的真实用户浏览器直接向 CDN 建立连接，零延迟满速播放，同时杜绝海外服务器流量中转开销。
+      return response.redirect(302, onlineUrl);
     }
 
     throw new NotFoundException('Audio stream not available for this song');

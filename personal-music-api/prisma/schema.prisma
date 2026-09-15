@@ -103,9 +103,8 @@ model UserSettings {
 model FavoriteSong {
   id        Int      @id @default(autoincrement())
   userId    Int
-  songId    Int
+  songId    BigInt
   createdAt DateTime @default(now())
-  song      Song     @relation(fields: [songId], references: [id], onDelete: Cascade)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, songId])
@@ -114,9 +113,8 @@ model FavoriteSong {
 model FavoriteAlbum {
   id        Int      @id @default(autoincrement())
   userId    Int
-  albumId   Int
+  albumId   BigInt
   createdAt DateTime @default(now())
-  album     Album    @relation(fields: [albumId], references: [id], onDelete: Cascade)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, albumId])
@@ -125,9 +123,8 @@ model FavoriteAlbum {
 model FollowedArtist {
   id        Int      @id @default(autoincrement())
   userId    Int
-  artistId  Int
+  artistId  BigInt
   createdAt DateTime @default(now())
-  artist    Artist   @relation(fields: [artistId], references: [id], onDelete: Cascade)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, artistId])
@@ -179,7 +176,6 @@ model Artist {
   bioImageUrl        String?
   avatarPosition     String?          @default("50% 50%")
   backgroundPosition String?          @default("50% 50%")
-  followers          FollowedArtist[]
   albums             Album[]          @relation("AlbumToArtist")
 }
 
@@ -188,7 +184,6 @@ model Album {
   title       String
   uniqueId    String          @unique
   coverPath   String?
-  favoritedBy FavoriteAlbum[]
   songs       Song[]
   artists     Artist[]        @relation("AlbumToArtist")
 }
@@ -201,7 +196,6 @@ model Song {
   albumId           Int
   duration          Float?
   lyrics            String?
-  favoritedBy       FavoriteSong[]
   album             Album              @relation(fields: [albumId], references: [id])
   userPlaylistSongs UserPlaylistSong[]
   playlists         Playlist[]         @relation("PlaylistToSong")

@@ -27,11 +27,10 @@ interface SongContextMenuProps {
 const SongContextMenu = ({ children, song }: SongContextMenuProps) => {
   const router = useRouter();
   const { playSong, addToQueue, insertNext } = usePlayerStore();
-  const { favoriteSongIds, toggleFavoriteSong } = useFavoritesStore();
+  const isFavorited = useFavoritesStore((state) => state.favoriteSongIds.has(song.id));
+  const toggleFavoriteSong = useFavoritesStore((state) => state.toggleFavoriteSong);
   const { addToast } = useToastStore();
   const [showPlaylistModal, setShowPlaylistModal] = useState(false);
-
-  const isFavorited = favoriteSongIds.has(song.id);
 
   const handlePlay = () => {
     playSong(song);
@@ -103,7 +102,7 @@ const SongContextMenu = ({ children, song }: SongContextMenuProps) => {
             >
               <Heart
                 size={16}
-                className={isFavorited ? "fill-green-500 text-green-500" : ""}
+                className={isFavorited ? "fill-green-500 text-green-500" : "fill-none"}
               />
               {isFavorited ? "取消收藏" : "添加到收藏"}
             </ContextMenu.Item>

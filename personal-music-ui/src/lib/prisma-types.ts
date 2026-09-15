@@ -87,27 +87,24 @@ export interface UserSettings {
 export interface FavoriteSong {
   id: number;
   userId: number;
-  songId: number;
+  songId: bigint;
   createdAt: Date;
-  song?: Song;
   user?: User;
 }
 
 export interface FavoriteAlbum {
   id: number;
   userId: number;
-  albumId: number;
+  albumId: bigint;
   createdAt: Date;
-  album?: Album;
   user?: User;
 }
 
 export interface FollowedArtist {
   id: number;
   userId: number;
-  artistId: number;
+  artistId: bigint;
   createdAt: Date;
-  artist?: Artist;
   user?: User;
 }
 
@@ -153,7 +150,6 @@ export interface Artist {
   bioImageUrl: string | null;
   avatarPosition: string | null;
   backgroundPosition: string | null;
-  followers?: FollowedArtist[];
   albums?: Album[];
 }
 
@@ -162,7 +158,6 @@ export interface Album {
   title: string;
   uniqueId: string;
   coverPath: string | null;
-  favoritedBy?: FavoriteAlbum[];
   songs?: Song[];
   artists?: Artist[];
 }
@@ -175,7 +170,6 @@ export interface Song {
   albumId: number;
   duration: number | null;
   lyrics: string | null;
-  favoritedBy?: FavoriteSong[];
   album?: Album;
   userPlaylistSongs?: UserPlaylistSong[];
   playlists?: Playlist[];

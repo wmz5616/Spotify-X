@@ -15,7 +15,6 @@ import {
   Heart,
   Volume2,
   VolumeX,
-  MessageSquare,
   ListMusic,
   SlidersHorizontal,
   MoreVertical,
@@ -103,7 +102,8 @@ const FullScreenPlayer = () => {
     setVolume,
   } = usePlayerStore();
 
-  const { isSongFavorited, toggleFavoriteSong } = useFavoritesStore();
+  const favoriteSongIds = useFavoritesStore((state) => state.favoriteSongIds);
+  const toggleFavoriteSong = useFavoritesStore((state) => state.toggleFavoriteSong);
   const { isAuthenticated } = useUserStore();
   const { addToast } = useToastStore();
   const [imgError, setImgError] = useState(false);
@@ -253,7 +253,7 @@ const FullScreenPlayer = () => {
     }
   };
 
-  const isLiked = currentSong ? isSongFavorited(currentSong.id) : false;
+  const isLiked = currentSong ? favoriteSongIds.has(currentSong.id) : false;
 
   const handleLike = async () => {
     if (!currentSong) return;
@@ -419,17 +419,19 @@ const FullScreenPlayer = () => {
                 <button
                   onClick={handleLike}
                   className="flex flex-col items-center active:scale-90 transition-transform shrink-0 pt-0.5"
-                  aria-label={isLiked ? "已收藏" : "收藏"}
+                  aria-label={isLiked ? "取消收藏" : "收藏"}
                 >
                   <Heart
                     size={30}
                     className={`transition-colors duration-200 stroke-[1.5] ${
                       isLiked
                         ? "fill-rose-500 text-rose-500 drop-shadow-[0_0_12px_rgba(244,63,94,0.6)]"
-                        : "fill-rose-500/80 text-rose-500/90"
+                        : "fill-none text-white/80"
                     }`}
                   />
-                  <span className="text-[10px] font-bold text-rose-400/90 tracking-tight mt-0.5 leading-none">
+                  <span className={`text-[10px] font-bold tracking-tight mt-0.5 leading-none ${
+                    isLiked ? "text-rose-400/90" : "text-white/70"
+                  }`}>
                     {currentSong.favCount || "1000w+"}
                   </span>
                 </button>
@@ -594,32 +596,22 @@ const FullScreenPlayer = () => {
                     </p>
                   </div>
 
-                  <div className="flex items-center gap-3 flex-shrink-0">
-                    {/* 评论数徽章 */}
-                    <button
-                      onClick={() => addToast("评论区功能即将开放")}
-                      className="relative p-1 text-white/80 hover:text-white active:scale-90 transition-transform flex flex-col items-center"
-                      aria-label="查看评论"
-                    >
-                      <span className="text-[10px] font-semibold text-white/80 leading-none mb-1">
-                        999+
-                      </span>
-                      <MessageSquare size={22} className="stroke-[1.8]" />
-                    </button>
-
+                  <div className="flex items-center flex-shrink-0">
                     {/* 真实收藏量徽章 */}
                     <button
                       onClick={handleLike}
                       className="relative p-1 active:scale-90 transition-transform flex flex-col items-center"
                       aria-label={isLiked ? "取消收藏" : "收藏歌曲"}
                     >
-                      <span className="text-[10px] font-semibold text-white/80 leading-none mb-1">
+                      <span className={`text-[10px] font-semibold leading-none mb-1 ${
+                        isLiked ? "text-rose-400/90" : "text-white/80"
+                      }`}>
                         {currentSong.favCount || "180w+"}
                       </span>
                       <Heart
                         size={24}
                         className={`transition-colors duration-200 stroke-[1.8] ${
-                          isLiked ? "fill-rose-500 text-rose-500" : "text-white/80"
+                          isLiked ? "fill-rose-500 text-rose-500" : "fill-none text-white/80"
                         }`}
                       />
                     </button>

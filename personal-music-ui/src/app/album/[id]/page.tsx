@@ -156,8 +156,10 @@ const AlbumDetailPage = () => {
   const router = useRouter();
   const id = params.id as string;
   const { playSong, currentSong, isPlaying } = usePlayerStore();
-  const { favoriteAlbumIds, toggleFavoriteAlbum, isSongFavorited, toggleFavoriteSong } =
-    useFavoritesStore();
+  const favoriteAlbumIds = useFavoritesStore((state) => state.favoriteAlbumIds);
+  const favoriteSongIds = useFavoritesStore((state) => state.favoriteSongIds);
+  const toggleFavoriteAlbum = useFavoritesStore((state) => state.toggleFavoriteAlbum);
+  const toggleFavoriteSong = useFavoritesStore((state) => state.toggleFavoriteSong);
   const { addToast } = useToastStore();
   const { isAuthenticated } = useUserStore();
 
@@ -493,7 +495,7 @@ const AlbumDetailPage = () => {
           <div className="flex flex-col gap-0.5 px-1 mt-1">
             {queueWithAlbum.map((song, index) => {
               const isCurrent = song.id === currentSong?.id;
-              const isFavorited = isSongFavorited(song.id);
+              const isFavorited = favoriteSongIds.has(song.id);
               const cover = song.album?.coverPath
                 ? getAuthenticatedSrc(song.album.coverPath, 100)
                 : albumArtUrl;
@@ -614,7 +616,7 @@ const AlbumDetailPage = () => {
                             "transition-colors shrink-0",
                             isFavorited
                               ? "fill-rose-500 text-rose-500"
-                              : "text-neutral-400 dark:text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200"
+                              : "fill-none text-neutral-400 dark:text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200"
                           )}
                         />
                         <span className="text-[11px] text-neutral-400 dark:text-neutral-400 font-medium tabular-nums truncate">
@@ -725,7 +727,7 @@ const AlbumDetailPage = () => {
             >
               <Heart
                 size={22}
-                className={`transition-colors ${isFavorited ? "fill-rose-500 text-rose-500" : "currentColor"
+                className={`transition-colors ${isFavorited ? "fill-rose-500 text-rose-500" : "fill-none currentColor"
                   }`}
               />
             </button>

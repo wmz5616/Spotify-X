@@ -33,12 +33,12 @@ const SongRowItem = ({
 }: SongRowItemProps) => {
   const { playSong, togglePlayPause, currentSong, isPlaying } =
     usePlayerStore();
-  const { isSongFavorited, toggleFavoriteSong } = useFavoritesStore();
+  const isFavorited = useFavoritesStore((state) => state.favoriteSongIds.has(song.id));
+  const toggleFavoriteSong = useFavoritesStore((state) => state.toggleFavoriteSong);
   const { isAuthenticated } = useUserStore();
   const { addToast } = useToastStore();
 
   const isCurrentSong = song.id === currentSong?.id;
-  const isFavorited = isSongFavorited(song.id);
   const [isHovered, setIsHovered] = useState(false);
 
   const handlePlayClick = (e: React.MouseEvent) => {

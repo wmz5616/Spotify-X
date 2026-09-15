@@ -378,7 +378,8 @@ const MobileQQSongGroup = ({
   chart: ChartAlbum;
 }) => {
   const { currentSong, isPlaying, playSong, togglePlayPause } = usePlayerStore();
-  const { isSongFavorited, toggleFavoriteSong } = useFavoritesStore();
+  const favoriteSongIds = useFavoritesStore((state) => state.favoriteSongIds);
+  const toggleFavoriteSong = useFavoritesStore((state) => state.toggleFavoriteSong);
 
   const topSongs = (chart.songs || []).slice(0, 3);
   if (topSongs.length === 0) return null;
@@ -412,7 +413,7 @@ const MobileQQSongGroup = ({
       {topSongs.map((song) => {
         const isCurrent = currentSong?.id === song.id;
         const isTrackPlaying = isCurrent && isPlaying;
-        const isFav = isSongFavorited(song.id);
+        const isFav = favoriteSongIds.has(song.id);
         const cover = song.album?.coverPath
           ? getAuthenticatedSrc(song.album.coverPath, 120)
           : chart.coverPath
@@ -483,7 +484,7 @@ const MobileQQSongGroup = ({
             >
               <Heart
                 size={15}
-                className={`shrink-0 ${isFav ? "fill-rose-500 text-rose-500" : "text-neutral-400"}`}
+                className={`shrink-0 ${isFav ? "fill-rose-500 text-rose-500" : "fill-none text-neutral-400"}`}
               />
               {song.favCount ? (
                 <span

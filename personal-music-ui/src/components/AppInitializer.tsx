@@ -11,10 +11,10 @@ export default function AppInitializer({ children }: { children: React.ReactNode
     const { initializeFavorites, isInitialized } = useFavoritesStore();
 
     useEffect(() => {
-        if (isAuthenticated && token && !isInitialized) {
+        if (hasHydrated) {
             initializeFavorites();
         }
-    }, [isAuthenticated, token, isInitialized, initializeFavorites]);
+    }, [hasHydrated, isAuthenticated, token, initializeFavorites]);
 
     // Global redirect when logged out
     useEffect(() => {

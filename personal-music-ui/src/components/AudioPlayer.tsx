@@ -51,7 +51,7 @@ const AudioPlayer = () => {
     const resolveLosslessFullAudio = async () => {
       try {
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 3500);
+        const timeout = setTimeout(() => controller.abort(), 1200);
         const res = await fetch(
           `https://music-api.gdstudio.xyz/api.php?types=url&id=${currentSong.id}&source=netease`,
           { signal: controller.signal }

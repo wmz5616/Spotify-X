@@ -33,7 +33,8 @@ export default function DiscoverPage() {
     setFullScreen,
   } = usePlayerStore();
 
-  const { isSongFavorited, toggleFavoriteSong } = useFavoritesStore();
+  const favoriteSongIds = useFavoritesStore((state) => state.favoriteSongIds);
+  const toggleFavoriteSong = useFavoritesStore((state) => state.toggleFavoriteSong);
 
   const [candidateSongs, setCandidateSongs] = useState<Song[]>([]);
   const [lyricsData, setLyricsData] = useState<string | null>(null);
@@ -123,7 +124,7 @@ export default function DiscoverPage() {
     playSong(nextSong, pool);
   };
 
-  const isFavorited = currentSong ? isSongFavorited(currentSong.id) : false;
+  const isFavorited = currentSong ? favoriteSongIds.has(currentSong.id) : false;
 
   return (
     <div className="max-w-md mx-auto flex flex-col items-center justify-between min-h-[calc(100vh-180px)] px-2 py-4 select-none">
@@ -207,7 +208,7 @@ export default function DiscoverPage() {
               className={
                 isFavorited
                   ? "fill-red-500 text-red-500 transition-colors"
-                  : "hover:text-white transition-colors"
+                  : "fill-none text-neutral-400 hover:text-white transition-colors"
               }
             />
           </button>

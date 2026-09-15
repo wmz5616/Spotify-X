@@ -167,7 +167,8 @@ const PlayerControls = () => {
     toggleFullScreen,
   } = usePlayerStore();
   const { addToast } = useToastStore();
-  const { isSongFavorited, toggleFavoriteSong } = useFavoritesStore();
+  const favoriteSongIds = useFavoritesStore((state) => state.favoriteSongIds);
+  const toggleFavoriteSong = useFavoritesStore((state) => state.toggleFavoriteSong);
   const { isAuthenticated } = useUserStore();
 
   const pathname = usePathname();
@@ -182,7 +183,7 @@ const PlayerControls = () => {
     setIsMounted(true);
   }, []);
 
-  const isLiked = currentSong ? isSongFavorited(currentSong.id) : false;
+  const isLiked = currentSong ? favoriteSongIds.has(currentSong.id) : false;
 
   const handleLikeToggle = async () => {
     if (!currentSong) return;

@@ -34,17 +34,25 @@ export const useFavoritesStore = create<FavoritesState>((set, get) => ({
     initializeFavorites: async () => {
         const token = useUserStore.getState().token;
         if (!token) {
+            let guestFavs = new Set<number>();
             if (typeof window !== "undefined") {
                 try {
                     const saved = localStorage.getItem("spotify_guest_favorites");
                     if (saved) {
                         const ids = JSON.parse(saved);
                         if (Array.isArray(ids)) {
-                            set({ favoriteSongIds: new Set(ids), isInitialized: true });
+                            guestFavs = new Set(ids);
                         }
                     }
                 } catch { }
             }
+            set({
+                favoriteSongIds: guestFavs,
+                favoriteAlbumIds: new Set<number>(),
+                followedArtistIds: new Set<number>(),
+                isInitialized: true,
+                isLoading: false,
+            });
             return;
         }
 
