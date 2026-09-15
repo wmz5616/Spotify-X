@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { Home, TvMinimalPlay, Radio, User } from 'lucide-react';
+import { Home, TvMinimalPlay, Radio, Star, User } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { usePlayerStore } from '@/store/usePlayerStore';
@@ -32,6 +32,12 @@ export default function MobileNavBar() {
       isActive: pathname?.startsWith('/discover'),
     },
     {
+      icon: Star,
+      label: '星光',
+      href: '/playlists',
+      isActive: pathname?.startsWith('/playlists'),
+    },
+    {
       icon: User,
       label: '我的',
       href: '/library',
@@ -39,7 +45,6 @@ export default function MobileNavBar() {
         pathname?.startsWith('/library') ||
         pathname?.startsWith('/favorites') ||
         pathname?.startsWith('/history') ||
-        pathname?.startsWith('/playlists') ||
         pathname?.startsWith('/settings') ||
         pathname?.startsWith('/admin'),
     },
