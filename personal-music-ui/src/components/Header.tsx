@@ -163,7 +163,7 @@ const Header = () => {
             </div>
             <input
               type="text"
-              placeholder={pathname === "/library" ? "赵雷 本周飙升黑马" : "搜索歌曲、歌手、专辑"}
+              placeholder="搜索"
               value={query}
               onChange={(e) => handleSearchChange(e.target.value)}
               onKeyDown={handleKeyDown}

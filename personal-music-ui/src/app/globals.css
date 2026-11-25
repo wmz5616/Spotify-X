@@ -376,11 +376,13 @@ html.light aside {
     background-image: none !important;
   }
 
-  /* 严禁移动端渲染任何背景渐变 */
+  /* 严禁移动端渲染页面大面积全屏背景渐变 */
   #ambient-bg,
   .ambient-bg,
-  div[class*="bg-gradient-"] {
+  .ambient-glow,
+  [data-ambient-glow] {
     background-image: none !important;
+    display: none !important;
   }
 
   /* 移动端日间模式下所有卡片纯白 */
