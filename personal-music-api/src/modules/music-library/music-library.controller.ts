@@ -609,10 +609,12 @@ export class MusicLibraryController {
     // 2. Otherwise, resolve from online streaming service!
     const onlineUrl = await this.onlineMusicService.resolveStreamUrl(id);
     if (onlineUrl) {
-      // 客户端 302 直接重定向到 CDN 极速拉取播放！
-      // 核心解决：海外部署节点（如 Render）直连国内移动/网易云 CDN 节点（211.162.170.x）会被国内防火墙直接丢包导致 ETIMEDOUT 超时。
-      // 302 重定向让处于国内网络的真实用户浏览器直接向 CDN 建立连接，零延迟满速播放，同时杜绝海外服务器流量中转开销。
-      return response.redirect(302, onlineUrl);
+      // 网易云 CDN 支持 Access-Control-Allow-Origin: *，直接 302 重定向让客户端零延迟直连；
+      // 酷我等第三方 CDN 无 CORS 头，在前端 <audio crossOrigin="anonymous"> 下直接 302 会触发跨域拦截，需经服务端代理并补充 CORS 头
+      if (onlineUrl.includes('.music.126.net') || onlineUrl.includes('music.163.com')) {
+        return response.redirect(302, onlineUrl);
+      }
+      return this.streamRemoteUrl(onlineUrl, request, response, id);
     }
 
     throw new NotFoundException('Audio stream not available for this song');
@@ -688,11 +690,13 @@ export class MusicLibraryController {
 
     const req = mod.get(url, { headers: clientHeaders }, async (remoteRes) => {
       if (remoteRes.statusCode && remoteRes.statusCode >= 300 && remoteRes.statusCode < 400 && remoteRes.headers.location) {
+        remoteRes.resume();
         return this.streamRemoteUrl(remoteRes.headers.location, request, response, songId, retryCount);
       }
 
       // 如果上游返回 4xx 或 5xx 错误（例如 403 Forbidden 临时签名过期），自动清理缓存并重试一次全新解析
       if (remoteRes.statusCode && remoteRes.statusCode >= 400) {
+        remoteRes.resume();
         this.logger.warn(`Remote audio stream returned status ${remoteRes.statusCode} for song ${songId}, url: ${url}`);
         if (songId) {
           this.onlineMusicService.clearStreamCache(songId);
@@ -716,6 +720,8 @@ export class MusicLibraryController {
         'Accept-Ranges': 'bytes',
         'X-Content-Type-Options': 'nosniff',
         'Content-Disposition': 'inline',
+        'Access-Control-Allow-Origin': '*',
+        'Cross-Origin-Resource-Policy': 'cross-origin',
       };
 
       if (remoteRes.headers['content-length']) {
@@ -727,6 +733,16 @@ export class MusicLibraryController {
 
       response.writeHead(statusCode, responseHeaders);
       remoteRes.pipe(response);
+    });
+
+    req.setTimeout(15000, () => {
+      req.destroy(new Error('Upstream audio stream timeout'));
+    });
+
+    request.on('close', () => {
+      if (!response.writableEnded) {
+        req.destroy();
+      }
     });
 
     req.on('error', (err) => {

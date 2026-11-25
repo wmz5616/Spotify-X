@@ -1288,91 +1288,184 @@ export class OnlineMusicService implements OnModuleInit {
   }
 
   /**
-   * Resolve audio stream URL with multi-source fallback (Meting NetEase -> GDStudio FLAC -> NetEase Official -> Cross-Platform Kuwo)
+   * 校验音频是否为完整音轨，排除 15s / 30s VIP 试听片段
+   */
+  private isLikelyFullTrack(size?: number, br?: number, expectedDuration?: number): boolean {
+    if (typeof size === 'number' && Number.isFinite(size) && size > 0) {
+      if ((!expectedDuration || expectedDuration > 60) && size <= 1_000_000) {
+        return false;
+      }
+      if (typeof br === 'number' && Number.isFinite(br) && br > 0) {
+        const estSec = (size * 8) / (br * 1000);
+        if (expectedDuration && expectedDuration > 75) {
+          if (estSec < Math.min(50, expectedDuration * 0.45)) return false;
+        } else if (expectedDuration && expectedDuration > 0) {
+          if (estSec < expectedDuration * 0.45) return false;
+        } else if (estSec < 45) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  /**
+   * HEAD 校验音频链接是否有效且为完整版 (>1MB)
+   */
+  private async verifyFullAudioUrl(
+    url: string,
+    timeoutMs = 4500,
+    expectedDuration?: number,
+  ): Promise<{ ok: boolean; finalUrl: string; contentLength: number; contentType: string }> {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const headRes = await fetch(url, {
+        method: 'HEAD',
+        redirect: 'follow',
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+      const ct = headRes.headers.get('content-type') || '';
+      const cl = parseInt(headRes.headers.get('content-length') || '0', 10);
+      const isAudio = ct.includes('audio') || ct.includes('octet-stream') || headRes.url.includes('.music.126.net') || headRes.url.includes('.kuwo.cn');
+      const minSize = expectedDuration && expectedDuration <= 60 ? 250_000 : 1_000_000;
+      const isFull = headRes.ok && isAudio && cl > minSize;
+      return {
+        ok: isFull,
+        finalUrl: headRes.url && headRes.url.startsWith('http') ? headRes.url : url,
+        contentLength: cl,
+        contentType: ct,
+      };
+    } catch {
+      clearTimeout(timeout);
+      return { ok: false, finalUrl: url, contentLength: 0, contentType: '' };
+    }
+  }
+
+  /**
+   * Resolve audio stream URL with multi-source fallback (GDStudio NetEase -> Direct Kuwo/Haitang -> NetEase Official -> Meting)
    */
   async resolveStreamUrl(id: number, forceFresh = false): Promise<string | null> {
     if (!forceFresh) {
       const cached = this.streamUrlCache.get(id);
-      // Netease CDN URL expires after ~20-30 minutes; cache for at most 15 minutes
+      // Netease/Kuwo CDN URL expires after ~20-30 minutes; cache for at most 15 minutes
       if (cached && Date.now() - cached.timestamp < 15 * 60 * 1000) {
         return cached.url;
       }
     }
 
-    // 1. 核心第一优先级：GDStudio 网易云无损 FLAC / 320k 完整音轨解析器 (每首 20MB ~ 60MB 完整母带，绝不播放 30 秒试听)
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 6000);
-      const gdRes = await fetch(`https://music-api.gdstudio.xyz/api.php?types=url&id=${id}&source=netease`, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Accept': 'application/json, text/plain, */*',
-        },
-        signal: controller.signal,
-      });
-      clearTimeout(timeout);
-      if (gdRes.ok) {
-        const gdJson: any = await gdRes.json();
-        // 严格验证 size > 1000000 (排除 480KB 的 30 秒试听音频，确保只用完整音轨)
-        if (
-          gdJson?.url &&
-          typeof gdJson.url === 'string' &&
-          gdJson.url.startsWith('http') &&
-          (gdJson.size === undefined || gdJson.size > 1000000)
-        ) {
-          this.streamUrlCache.set(id, { url: gdJson.url, timestamp: Date.now() });
-          return gdJson.url;
+    const song = await this.findSongById(id);
+    const expectedDuration = song?.duration;
+
+    // 1. 核心第一优先级：GDStudio 网易云 320k / 无损 FLAC 完整音轨解析器 (绝不播放 15/30 秒试听)
+    for (const br of [320, 999]) {
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 8500);
+        const gdRes = await fetch(`https://music-api.gdstudio.xyz/api.php?types=url&id=${id}&source=netease&br=${br}`, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'application/json, text/plain, */*',
+          },
+          signal: controller.signal,
+        });
+        clearTimeout(timeout);
+        if (gdRes.ok) {
+          const text = await gdRes.text();
+          if (text.trim().startsWith('{')) {
+            const gdJson: any = JSON.parse(text);
+            if (
+              gdJson?.url &&
+              typeof gdJson.url === 'string' &&
+              gdJson.url.startsWith('http') &&
+              this.isLikelyFullTrack(Number(gdJson.size), Number(gdJson.br) || br, expectedDuration)
+            ) {
+              this.streamUrlCache.set(id, { url: gdJson.url, timestamp: Date.now() });
+              return gdJson.url;
+            }
+            // 明确返回空 url（网易云无版权曲目如周杰伦）直接跳到跨平台源
+            if (!gdJson?.url) {
+              break;
+            }
+          }
         }
+      } catch (e: any) {
+        this.logger.debug?.(`GDStudio netease url (br=${br}) failed for ${id}: ${e?.message}`);
       }
-    } catch (e: any) {
-      this.logger.debug?.(`GDStudio netease url failed for ${id}: ${e?.message}`);
     }
 
-    // 2. 第二优先级：跨平台按歌名 + 歌手精准匹配 (解决部分独家版权歌曲，获取完整 MP3 音轨)
-    const song = await this.findSongById(id);
+    // 2. 第二优先级：跨平台酷我官方直搜 + 海棠/酷我完整音轨解析 (解决网易云独家/无版权歌曲及海外拦截)
     if (song) {
       const cleanTitle = song.title.replace(/\s*\(.*?\)/g, '').replace(/\s*\[.*?\]/g, '').trim() || song.title;
       const cleanArtist = song.artist.replace(/\s*[,/&].*$/, '').trim() || song.artist;
       const searchQuery = `${cleanTitle} ${cleanArtist}`;
 
       try {
-        const kwSearch = await this.httpGet(
-          `https://music-api.gdstudio.xyz/api.php?types=search&count=2&source=kuwo&pages=1&name=${encodeURIComponent(searchQuery)}`,
+        const kwSearchRaw = await this.httpGet(
+          `https://search.kuwo.cn/r.s?all=${encodeURIComponent(searchQuery)}&ft=music&newsearch=1&alflac=1&itemset=web_2013&client=kt&cluster=0&pn=0&rn=8&rformat=json&encoding=utf8&show_copyright_off=1&pcmp4=1&vermerge=1&mobi=1&vipver=1`,
+          { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
         );
-        const kwJson = JSON.parse(kwSearch);
-        const kwSong = kwJson?.[0];
+        const kwJson = JSON.parse(kwSearchRaw);
+        const rawList: any[] = Array.isArray(kwJson?.abslist) ? kwJson.abslist : [];
 
-        if (kwSong && kwSong.id) {
-          // 尝试 GDStudio 酷我解析
-          try {
-            const gdKwRes = await this.httpGet(`https://music-api.gdstudio.xyz/api.php?types=url&id=${kwSong.id}&source=kuwo`);
-            const gdKwJson = JSON.parse(gdKwRes);
-            if (gdKwJson.url && gdKwJson.url.startsWith('http') && (gdKwJson.size === undefined || gdKwJson.size > 1000000)) {
-              this.streamUrlCache.set(id, { url: gdKwJson.url, timestamp: Date.now() });
-              return gdKwJson.url;
+        const isTitleSpecial = /(dj|伴奏|纯音乐|live|现场|翻唱|cover)/i.test(song.title);
+        const candidates = rawList
+          .map((item) => {
+            const rid = String(item.MUSICRID || '').replace(/^MUSIC_/, '');
+            const name = String(item.NAME || item.SONGNAME || '').replace(/&nbsp;/g, ' ').trim();
+            const artist = String(item.ARTIST || '').replace(/&nbsp;/g, ' ').trim();
+            const dur = parseInt(String(item.DURATION || '0'), 10);
+            const isFree = String(item.PAY) === '0';
+
+            let score = 0;
+            const nLower = name.toLowerCase();
+            const aLower = artist.toLowerCase();
+            const tLower = cleanTitle.toLowerCase();
+            const arLower = cleanArtist.toLowerCase();
+
+            if (nLower === tLower) score += 50;
+            else if (nLower.startsWith(tLower) || nLower.includes(tLower)) score += 25;
+            if (aLower === arLower) score += 40;
+            else if (aLower.includes(arLower)) score += 20;
+            if (!isTitleSpecial && /(dj|伴奏|纯音乐|翻唱|cover|live|现场|铃声|片段)/i.test(name)) score -= 45;
+            if (expectedDuration && dur > 0 && Math.abs(dur - expectedDuration) <= 18) score += 20;
+            if (dur >= 60) score += 10;
+
+            return { rid, name, artist, dur, isFree, score };
+          })
+          .filter((c) => c.rid && c.score > 0)
+          .sort((a, b) => b.score - a.score);
+
+        for (const candidate of candidates.slice(0, 3)) {
+          // 2a. 尝试海棠酷我 320k / 无损解析，并严格 HEAD 校验完整体积 (>1MB)
+          for (const level of ['exhigh', 'lossless']) {
+            const haitangUrl = `https://musicapi.haitangw.net/music/kw.php?type=mp3&id=${candidate.rid}&level=${level}`;
+            const check = await this.verifyFullAudioUrl(haitangUrl, 4500, expectedDuration);
+            if (check.ok) {
+              this.streamUrlCache.set(id, { url: check.finalUrl, timestamp: Date.now() });
+              return check.finalUrl;
             }
-          } catch { }
+          }
 
-          // 尝试酷我 native anti.s 转换，并严格验证体积 > 1MB，杜绝 180KB 10秒试听片段
-          const playUrl = await this.httpGet(
-            `http://antiserver.kuwo.cn/anti.s?type=convert_url&rid=${kwSong.id}&format=mp3&response=url`,
-            { 'User-Agent': 'okhttp/3.10.0' },
-          );
-          if (playUrl && playUrl.startsWith('http') && !playUrl.includes('/nf/resource/')) {
+          // 2b. 若为免费曲目，尝试酷我 native anti.s 转换并严格校验体积 > 1MB（拒绝 181KB 15秒试听）
+          if (candidate.isFree) {
             try {
-              const headCheck = await fetch(playUrl.trim(), { method: 'HEAD' });
-              const size = parseInt(headCheck.headers.get('content-length') || '0', 10);
-              if (size > 1000000) {
-                this.streamUrlCache.set(id, { url: playUrl.trim(), timestamp: Date.now() });
-                return playUrl.trim();
+              const playUrl = await this.httpGet(
+                `http://antiserver.kuwo.cn/anti.s?type=convert_url&rid=${candidate.rid}&format=mp3&response=url`,
+                { 'User-Agent': 'okhttp/3.10.0' },
+              );
+              const trimmedUrl = playUrl?.trim();
+              if (trimmedUrl && trimmedUrl.startsWith('http') && !trimmedUrl.includes('/nf/resource/')) {
+                const check = await this.verifyFullAudioUrl(trimmedUrl, 4000, expectedDuration);
+                if (check.ok) {
+                  this.streamUrlCache.set(id, { url: check.finalUrl, timestamp: Date.now() });
+                  return check.finalUrl;
+                }
               }
             } catch { }
           }
-
-          // 尝试海棠备用源
-          const backupUrl = `https://musicapi.haitangw.net/music/kw.php?type=mp3&id=${kwSong.id}&level=lossless`;
-          this.streamUrlCache.set(id, { url: backupUrl, timestamp: Date.now() });
-          return backupUrl;
         }
       } catch (e: any) {
         this.logger.warn(`Cross-match failed for "${searchQuery}": ${e.message}`);
@@ -1382,37 +1475,31 @@ export class OnlineMusicService implements OnModuleInit {
     // 3. 第三优先级：网易云官方 outer 媒体直链 (官方放行高品质 MP3，必须验证完整版 > 1MB)
     try {
       const neteaseOuter = `https://music.163.com/song/media/outer/url?id=${id}.mp3`;
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 3000);
-      const headRes = await fetch(neteaseOuter, { method: 'HEAD', redirect: 'follow', signal: controller.signal });
-      clearTimeout(timeout);
-      const ct = headRes.headers.get('content-type') || '';
-      const cl = parseInt(headRes.headers.get('content-length') || '0', 10);
-      // 校验返回必须为音频流且文件大于 1MB (杜绝 404 HTML 或 30 秒试听)
-      if (headRes.ok && (ct.includes('audio') || ct.includes('octet-stream')) && cl > 1000000) {
-        const finalUrl = headRes.url || neteaseOuter;
-        this.streamUrlCache.set(id, { url: finalUrl, timestamp: Date.now() });
-        return finalUrl;
+      const check = await this.verifyFullAudioUrl(neteaseOuter, 3500, expectedDuration);
+      if (check.ok) {
+        this.streamUrlCache.set(id, { url: check.finalUrl, timestamp: Date.now() });
+        return check.finalUrl;
       }
     } catch { }
 
-    // 4. 第四优先级：Meting 网易云解析网关兜底 (仅在上述源均未命中时启用)
+    // 4. 第四优先级：Meting 网易云解析网关兜底
+    // 仅完整版 (>1MB) 才写入缓存；若仅返回 15s/30s 试听片段绝不缓存，避免临时波动污染缓存 15 分钟
     try {
       const metingUrl = `https://api.injahow.cn/meting/?type=url&id=${id}`;
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 4000);
-      const res = await fetch(metingUrl, {
-        method: 'HEAD',
-        redirect: 'follow',
-        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
-        signal: controller.signal,
-      });
-      clearTimeout(timeout);
-      const ct = res.headers.get('content-type') || '';
-      if (res.ok && (ct.includes('audio') || ct.includes('octet-stream') || res.url.includes('.music.126.net'))) {
-        const finalUrl = res.url && res.url.startsWith('http') ? res.url : metingUrl;
-        this.streamUrlCache.set(id, { url: finalUrl, timestamp: Date.now() });
-        return finalUrl;
+      const check = await this.verifyFullAudioUrl(metingUrl, 4000, expectedDuration);
+      if (check.ok) {
+        this.streamUrlCache.set(id, { url: check.finalUrl, timestamp: Date.now() });
+        return check.finalUrl;
+      }
+      // 所有完整源均不可用时，仅作为未缓存的最后兜底（前端会识别真实试听时长并提示用户）
+      const isTrialAudio =
+        check.contentLength > 0 &&
+        (check.contentType.includes('audio') ||
+          check.contentType.includes('octet-stream') ||
+          check.finalUrl.includes('.music.126.net'));
+      if (isTrialAudio) {
+        this.logger.warn(`All full sources failed for song ${id}; returning uncached trial clip (${check.contentLength} bytes)`);
+        return check.finalUrl;
       }
     } catch (e: any) {
       this.logger.debug?.(`Meting resolve failed for ${id}: ${e?.message}`);
