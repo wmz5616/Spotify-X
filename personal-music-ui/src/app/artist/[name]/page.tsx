@@ -9,12 +9,10 @@ import AlbumCard from "@/components/AlbumCard";
 import PopularSongsList from "@/components/PopularSongsList";
 import AboutCard from "@/components/AboutCard";
 import clsx from "clsx";
-import { apiClient, getAuthenticatedSrc } from "@/lib/api-client";
+import { apiClient, getAuthenticatedSrc, CLIENT_API_BASE_URL as API_BASE_URL } from "@/lib/api-client";
 import { usePlayerStore } from "@/store/usePlayerStore";
 import { useFavoritesStore } from "@/store/useFavoritesStore";
 import { useToastStore } from "@/store/useToastStore";
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
 type ArtistDetails = Artist & {
   albums: (Album & { songs: Song[]; artists: Artist[] })[];

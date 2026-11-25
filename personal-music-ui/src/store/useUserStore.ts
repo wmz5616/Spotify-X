@@ -3,6 +3,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { useFavoritesStore } from "./useFavoritesStore";
+import { CLIENT_API_BASE_URL as API_BASE_URL } from "@/lib/api-client";
 
 interface User {
     id: number;
@@ -54,8 +55,6 @@ interface UserState {
     setToken: (token: string) => void;
     clearError: () => void;
 }
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
 export const useUserStore = create<UserState>()(
     persist(

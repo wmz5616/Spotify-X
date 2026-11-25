@@ -37,7 +37,7 @@ export const useNotificationStore = create<NotificationState>()(
                     const token = localStorage.getItem('token');
                     if (!token) return;
 
-                    const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/notifications`, {
+                    const response = await axios.get(`/api/notifications`, {
                         headers: { Authorization: `Bearer ${token}` }
                     });
 
@@ -80,7 +80,7 @@ export const useNotificationStore = create<NotificationState>()(
 
                 try {
                     const token = localStorage.getItem('token');
-                    await axios.put(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/notifications/${id}/read`, {}, {
+                    await axios.put(`/api/notifications/${id}/read`, {}, {
                         headers: { Authorization: `Bearer ${token}` }
                     });
                 } catch (error) {
@@ -95,7 +95,7 @@ export const useNotificationStore = create<NotificationState>()(
 
                 try {
                     const token = localStorage.getItem('token');
-                    await axios.put(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/notifications/read-all`, {}, {
+                    await axios.put(`/api/notifications/read-all`, {}, {
                         headers: { Authorization: `Bearer ${token}` }
                     });
                 } catch (error) {

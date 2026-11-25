@@ -2,8 +2,7 @@
 
 import { create } from "zustand";
 import { useUserStore } from "./useUserStore";
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+import { CLIENT_API_BASE_URL as API_BASE_URL } from "@/lib/api-client";
 
 interface HistoryState {
     recordPlay: (songId: number, duration?: number, completed?: boolean) => Promise<void>;

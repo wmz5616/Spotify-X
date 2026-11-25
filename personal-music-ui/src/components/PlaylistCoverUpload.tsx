@@ -6,8 +6,7 @@ import { Camera, X, Loader2, Trash2, Music } from "lucide-react";
 import { useUserStore } from "@/store/useUserStore";
 import { useToastStore } from "@/store/useToastStore";
 import Image from "next/image";
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+import { CLIENT_API_BASE_URL as API_BASE_URL } from "@/lib/api-client";
 
 interface PlaylistCoverUploadProps {
     playlistId: number;

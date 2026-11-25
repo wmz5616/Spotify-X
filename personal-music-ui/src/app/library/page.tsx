@@ -23,13 +23,11 @@ import { useUserStore } from "@/store/useUserStore";
 import { useFavoritesStore } from "@/store/useFavoritesStore";
 import { usePlayerStore } from "@/store/usePlayerStore";
 import { useToastStore } from "@/store/useToastStore";
-import { apiClient, getAuthenticatedSrc } from "@/lib/api-client";
+import { apiClient, getAuthenticatedSrc, CLIENT_API_BASE_URL as API_BASE_URL } from "@/lib/api-client";
 import AuthModal from "@/components/AuthModal";
 import AddFriendModal from "@/components/chat/AddFriendModal";
 import type { Song, Album } from "@/types";
 import { motion, AnimatePresence } from "framer-motion";
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
 interface UserPlaylist {
   id: number;

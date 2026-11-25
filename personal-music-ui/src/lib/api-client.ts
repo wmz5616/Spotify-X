@@ -1,4 +1,20 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+const SERVER_API_BASE_URL = (
+  process.env.BACKEND_API_URL ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  "http://localhost:3001"
+).replace(/\/+$/, "");
+
+/**
+ * 浏览器端固定走同源相对路径 ("")，通过 Next.js rewrites 反向代理至后端源站：
+ * - 解决中国境内无需 VPN 访问（消除浏览器直连 *.onrender.com 阻断问题）
+ * - 消除跨域预检与 SSR/CSR URL 水合不一致
+ */
+export const CLIENT_API_BASE_URL = "";
+
+export function getApiBaseUrl(): string {
+  return typeof window === "undefined" ? SERVER_API_BASE_URL : CLIENT_API_BASE_URL;
+}
+
 const API_KEY = process.env.NEXT_PUBLIC_API_KEY;
 
 if (typeof window !== "undefined" && !API_KEY) {
@@ -51,7 +67,7 @@ export function getAuthenticatedSrc(path?: string | null, size?: number): string
   }
 
   const separator = normalizedPath.includes("?") ? "&" : "?";
-  return `${API_BASE_URL}${normalizedPath}${separator}key=${API_KEY}`;
+  return `${CLIENT_API_BASE_URL}${normalizedPath}${separator}key=${API_KEY}`;
 }
 
 /**
@@ -61,7 +77,7 @@ export function getAuthenticatedSrc(path?: string | null, size?: number): string
  * @param quality 
  */
 export function getStreamSrc(songId: number, token?: string, quality?: string): string {
-  let url = `${API_BASE_URL}/api/stream/${songId}`;
+  let url = `${CLIENT_API_BASE_URL}/api/stream/${songId}`;
   const params = new URLSearchParams();
   
   if (token) {
@@ -88,7 +104,7 @@ export async function apiClient<T>(
 ): Promise<T> {
   const { params, headers, ...customConfig } = options;
 
-  let url = `${API_BASE_URL}${endpoint}`;
+  let url = `${getApiBaseUrl()}${endpoint}`;
 
   if (params) {
     const searchParams = new URLSearchParams();

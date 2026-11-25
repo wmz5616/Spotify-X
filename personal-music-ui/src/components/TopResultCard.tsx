@@ -9,8 +9,6 @@ import type { Artist, Song, Album } from "@/types";
 import { apiClient, getAuthenticatedSrc } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-
 interface TopResultProps {
   result: Artist | (Album & { songs?: Song[] }) | null;
   type: "artist" | "album";

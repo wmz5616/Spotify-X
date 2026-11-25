@@ -10,9 +10,7 @@ import { Clock, Play, AlertCircle, Music } from "lucide-react";
 import SongRowItem from "@/components/SongRowItem";
 import { FixedSizeList as List } from "react-window";
 import PlaylistCoverUpload from "@/components/PlaylistCoverUpload";
-import { getAuthenticatedSrc } from "@/lib/api-client";
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+import { getAuthenticatedSrc, CLIENT_API_BASE_URL as API_BASE_URL } from "@/lib/api-client";
 
 type PlaylistDetails = Playlist & {
   coverPath?: string | null;

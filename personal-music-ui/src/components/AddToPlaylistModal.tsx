@@ -6,9 +6,7 @@ import { X, Plus, Music, Loader2 } from "lucide-react";
 import { useUserStore } from "@/store/useUserStore";
 import { useToastStore } from "@/store/useToastStore";
 import Image from "next/image";
-import { getAuthenticatedSrc } from "@/lib/api-client";
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+import { getAuthenticatedSrc, CLIENT_API_BASE_URL as API_BASE_URL } from "@/lib/api-client";
 
 interface Playlist {
     id: number;

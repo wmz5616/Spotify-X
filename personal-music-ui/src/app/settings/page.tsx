@@ -17,8 +17,7 @@ import { useUserStore } from "@/store/useUserStore";
 import { useToastStore } from "@/store/useToastStore";
 import { useThemeStore, type ThemeMode } from "@/store/useThemeStore";
 import clsx from "clsx";
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+import { CLIENT_API_BASE_URL as API_BASE_URL } from "@/lib/api-client";
 
 type SettingsTab = "appearance" | "account";
 

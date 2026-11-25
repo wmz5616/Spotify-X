@@ -46,7 +46,7 @@ export default function ProfileHeader({
         if (user.backgroundPath) {
             return getAuthenticatedSrc(user.backgroundPath);
         }
-        return "https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80&w=2070&auto=format&fit=crop";
+        return "/placeholder.jpg";
     };
 
     const getInitial = () => {

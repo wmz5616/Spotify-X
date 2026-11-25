@@ -7,6 +7,37 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  async rewrites() {
+    const rawBackend =
+      process.env.BACKEND_API_URL ||
+      process.env.NEXT_PUBLIC_API_URL ||
+      "http://localhost:3001";
+    const backendOrigin = rawBackend.replace(/\/+$/, "");
+
+    return {
+      // afterFiles 在本地 Next.js Route Handlers（如 /api/direct-audio）与 public/ 静态资源之后执行，
+      // 将其余所有 /api/*、/public/*、/static/*、/socket.io/* 同源反向代理到后端源站，
+      // 彻底避免中国大陆浏览器直连 *.onrender.com 需挂 VPN 的问题。
+      afterFiles: [
+        {
+          source: "/api/:path*",
+          destination: `${backendOrigin}/api/:path*`,
+        },
+        {
+          source: "/public/:path*",
+          destination: `${backendOrigin}/public/:path*`,
+        },
+        {
+          source: "/static/:path*",
+          destination: `${backendOrigin}/static/:path*`,
+        },
+        {
+          source: "/socket.io/:path*",
+          destination: `${backendOrigin}/socket.io/:path*`,
+        },
+      ],
+    };
+  },
   images: {
     unoptimized: true,
     remotePatterns: [

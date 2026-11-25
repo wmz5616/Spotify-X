@@ -5,10 +5,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Mic2, Music } from "lucide-react";
 import Image from "next/image";
 import { usePlayerStore } from "@/store/usePlayerStore";
-import { getAuthenticatedSrc } from "@/lib/api-client";
+import { getAuthenticatedSrc, CLIENT_API_BASE_URL as API_BASE_URL } from "@/lib/api-client";
 import { parseLRC, type LyricLine } from "@/lib/lrc-parser";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 const API_KEY = process.env.NEXT_PUBLIC_API_KEY || "";
 
 interface LyricsPanelProps {

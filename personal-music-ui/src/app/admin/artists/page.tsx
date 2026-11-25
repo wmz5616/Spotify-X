@@ -135,7 +135,7 @@ export default function ArtistManagement() {
                                 {/* Header Preview */}
                                 <div className="h-28 w-full relative bg-neutral-900 border-b border-white/5">
                                     <Image 
-                                        src={artist.headerUrl ? getAvatar(artist.headerUrl)! : "https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80&w=2070&auto=format&fit=crop"}
+                                        src={artist.headerUrl ? getAvatar(artist.headerUrl)! : "/placeholder.jpg"}
                                         alt={artist.name} fill className="object-cover opacity-50 group-hover:opacity-70 transition-opacity"
                                         style={{ objectPosition: artist.backgroundPosition || '50% 50%' }}
                                     />

@@ -29,11 +29,10 @@ import MvPlayerModal from "@/components/MvPlayerModal";
 import AlbumPageSkeleton from "@/components/AlbumPageSkeleton";
 import { formatDuration, cleanSongTitle } from "@/lib/utils";
 import { useColor } from "color-thief-react";
-import { apiClient, getAuthenticatedSrc } from "@/lib/api-client";
+import { apiClient, getAuthenticatedSrc, CLIENT_API_BASE_URL as API_BASE_URL } from "@/lib/api-client";
 import { motion } from "framer-motion";
 import clsx from "clsx";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 const API_KEY = process.env.NEXT_PUBLIC_API_KEY || "";
 
 type AlbumDetails = Album & {

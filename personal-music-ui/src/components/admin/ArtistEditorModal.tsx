@@ -102,7 +102,7 @@ export default function ArtistEditorModal({ artist, isOpen, onClose, onRefresh }
     }, []);
 
     const getUrl = (path?: string | null) => {
-        if (!path) return "https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80&w=2070&auto=format&fit=crop";
+        if (!path) return "/placeholder.jpg";
         const cleanPath = path.startsWith("/public") ? path : `/public${path}`;
         return getAuthenticatedSrc(cleanPath);
     };

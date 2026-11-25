@@ -33,7 +33,7 @@ export default function MobileHeroCarousel({ hotSongs = [] }: MobileHeroCarousel
 
   const coverUrl = featuredSong?.album?.coverPath
     ? getAuthenticatedSrc(featuredSong.album.coverPath, 200)
-    : "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400&auto=format&fit=crop&q=80";
+    : "/placeholder.jpg";
 
   return (
     <div className="md:hidden w-full overflow-hidden select-none py-0.5 mb-3.5">
@@ -47,9 +47,8 @@ export default function MobileHeroCarousel({ hotSongs = [] }: MobileHeroCarousel
           {/* 左侧：精美封面 + 拟物黑胶唱片 */}
           <div className="relative flex items-center shrink-0 z-10 pr-2">
             <div
-              className={`w-12 h-12 rounded-full bg-[#121212] border-2 border-neutral-800 shadow-sm flex items-center justify-center absolute left-4 z-0 transition-transform duration-700 ${
-                isPlayingFeatured ? "animate-[spin_10s_linear_infinite]" : "rotate-12"
-              }`}
+              className={`w-12 h-12 rounded-full bg-[#121212] border-2 border-neutral-800 shadow-sm flex items-center justify-center absolute left-4 z-0 transition-transform duration-700 ${isPlayingFeatured ? "animate-[spin_10s_linear_infinite]" : "rotate-12"
+                }`}
             >
               <div className="w-4 h-4 rounded-full bg-[#202020] border border-neutral-700 flex items-center justify-center">
                 <div className="w-1.5 h-1.5 rounded-full bg-neutral-400" />

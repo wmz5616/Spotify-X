@@ -108,7 +108,7 @@ export default function EditProfileModal({ user, isOpen, onClose, onSave, onRefr
             const path = user.backgroundPath.startsWith("/public") ? user.backgroundPath : `/public${user.backgroundPath}`;
             return getAuthenticatedSrc(path);
         }
-        return "https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80&w=2070&auto=format&fit=crop";
+        return "/placeholder.jpg";
     };
 
     const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>, type: "avatar" | "background") => {

@@ -87,14 +87,58 @@ async function fetchGDStudioDirectUrl(
   }
 
   const promise = (async (): Promise<CachedDirectUrl | null> => {
+    // 1. 优先走同源 /api/direct-audio 代理（由服务端解析网易云完整音轨直链 *.music.126.net，中国境内无需 VPN）
+    if (!externalSignal?.aborted) {
+      const proxyController = new AbortController();
+      const onProxyAbort = () => proxyController.abort();
+      externalSignal?.addEventListener("abort", onProxyAbort, { once: true });
+      const proxyTimeout = setTimeout(() => proxyController.abort(), DIRECT_URL_TIMEOUT_MS);
+
+      try {
+        const params = new URLSearchParams({
+          id: String(songId),
+          br: String(bitrates[0]),
+        });
+        if (expectedDuration && expectedDuration > 0) {
+          params.set("duration", String(Math.round(expectedDuration)));
+        }
+        const proxyRes = await fetch(`/api/direct-audio?${params.toString()}`, {
+          signal: proxyController.signal,
+        });
+        clearTimeout(proxyTimeout);
+        externalSignal?.removeEventListener("abort", onProxyAbort);
+
+        if (proxyRes.ok) {
+          const proxyData = await proxyRes.json();
+          if (proxyData?.url && typeof proxyData.url === "string" && proxyData.url.startsWith("http")) {
+            const entry: CachedDirectUrl = {
+              url: proxyData.url,
+              br: Number(proxyData.br) || bitrates[0],
+              expiry: Date.now() + DIRECT_URL_CACHE_TTL_MS,
+            };
+            directUrlCache.set(cacheKey, entry);
+            return entry;
+          }
+          // 明确确认网易云无此曲目版权（例如周杰伦）直接回退后端酷我跨平台源，不再二次等待
+          if (proxyData?.notFound) {
+            return null;
+          }
+        }
+      } catch {
+        clearTimeout(proxyTimeout);
+        externalSignal?.removeEventListener("abort", onProxyAbort);
+        if (externalSignal?.aborted) return null;
+      }
+    }
+
+    // 2. 若服务端代理节点偶发被 Cloudflare 限流，再尝试浏览器直连解析作为兜底
     for (const br of bitrates) {
-      // 最多尝试 2 次，避免上游偶发 5xx/HTML 波动导致直接降级为试听
       for (let attempt = 0; attempt < 2; attempt++) {
         if (externalSignal?.aborted) return null;
         const controller = new AbortController();
         const onExternalAbort = () => controller.abort();
         externalSignal?.addEventListener("abort", onExternalAbort, { once: true });
-        const timeout = setTimeout(() => controller.abort(), DIRECT_URL_TIMEOUT_MS);
+        const timeout = setTimeout(() => controller.abort(), 5000);
 
         try {
           const res = await fetch(
@@ -114,7 +158,6 @@ async function fetchGDStudioDirectUrl(
 
           const text = await res.text();
           if (!text.trim().startsWith("{")) {
-            // 上游偶发返回 HTML 错误页，短暂等待后重试一次
             if (attempt === 0) {
               await new Promise((r) => setTimeout(r, 250));
               continue;
@@ -133,18 +176,16 @@ async function fetchGDStudioDirectUrl(
             return entry;
           }
 
-          // 若明确返回空 url（例如网易云无版权曲目如周杰伦），直接跳出不再重复等待
           if (!data?.url) {
             return null;
           }
           break;
-        } catch (err: any) {
+        } catch {
           clearTimeout(timeout);
           externalSignal?.removeEventListener("abort", onExternalAbort);
           if (externalSignal?.aborted) {
             return null;
           }
-          // 网络抖动或超时时重试一次
           if (attempt === 0) {
             continue;
           }

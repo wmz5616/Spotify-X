@@ -52,8 +52,6 @@ interface ChatState {
     clearHistory: (conversationId: number) => Promise<void>;
 }
 
-const SOCKET_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-
 export const useChatStore = create<ChatState>((set, get) => ({
     socket: null,
     conversations: [],
@@ -67,7 +65,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
     initSocket: (userId: number) => {
         if (get().socket) return;
 
-        const socket = io(SOCKET_URL);
+        // 走同源 /socket.io 反向代理，避免中国大陆浏览器直连海外后端源站超时
+        const socket = io({
+            transports: ["polling", "websocket"],
+            reconnectionAttempts: 3,
+        });
         
         socket.on("connect", () => {
             console.log("Socket connected");
