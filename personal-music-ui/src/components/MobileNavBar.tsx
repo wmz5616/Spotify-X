@@ -49,26 +49,26 @@ export default function MobileNavBar() {
 
   return (
     <nav
-      className={`md:hidden fixed bottom-0 left-0 right-0 h-14 backdrop-blur-xl px-3 flex justify-around items-center z-50 select-none transition-colors duration-200 ${
+      className={`md:hidden fixed bottom-0 left-0 right-0 h-[52px] backdrop-blur-xl px-2 flex justify-around items-center z-50 select-none transition-colors duration-200 ${
         isVideo
           ? "bg-black/90 border-t border-white/10 shadow-2xl"
-          : "bg-white/95 dark:bg-[#121212]/95 border-t border-neutral-200 dark:border-white/[0.08] shadow-sm dark:shadow-none"
+          : "bg-white/95 dark:bg-[#121212]/95 border-t border-neutral-200/80 dark:border-white/[0.08] shadow-sm dark:shadow-none"
       }`}
     >
       {navItems.map((item) => (
         <Link
           key={item.href}
           href={item.href}
-          className={`flex flex-col items-center justify-center gap-1 py-1 px-4 transition-all active:scale-90 ${
+          className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-1 transition-all active:scale-90 ${
             item.isActive
-              ? 'text-emerald-500 dark:text-emerald-400 font-bold'
+              ? 'text-emerald-500 dark:text-emerald-400 font-semibold'
               : isVideo
               ? 'text-neutral-400 hover:text-white'
               : 'text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-200'
           }`}
         >
-          <item.icon size={20} strokeWidth={item.isActive ? 2.4 : 1.8} />
-          <span className="text-[11px] tracking-tight leading-none">
+          <item.icon size={19} strokeWidth={item.isActive ? 2.2 : 1.75} />
+          <span className="text-[10px] tracking-tight leading-none">
             {item.label}
           </span>
         </Link>

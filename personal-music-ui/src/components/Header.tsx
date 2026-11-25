@@ -146,7 +146,7 @@ const Header = () => {
     <header
       suppressHydrationWarning
       className={clsx(
-        "sticky -top-[1px] pt-[1px] z-50 h-14 md:h-16 px-4 md:px-6 items-center justify-between transition-all duration-300 ease-in-out select-none",
+        "sticky -top-[1px] pt-[1px] z-50 h-12 md:h-16 px-3.5 md:px-6 items-center justify-between transition-all duration-300 ease-in-out select-none",
         isDetailPage ? "hidden md:flex" : "flex",
         isVideoPage && "hidden md:flex",
         isScrolled
@@ -156,10 +156,10 @@ const Header = () => {
     >
       {/* 移动端搜索栏与菜单按钮 (1:1 复刻目标设计) */}
       {!isDetailPage && !isVideoPage && (
-        <div className="flex md:hidden items-center w-full gap-2.5">
+        <div className="flex md:hidden items-center w-full gap-2">
           <div className="relative flex-1 flex items-center">
-            <div className="absolute left-3.5 top-1/2 -translate-y-1/2 flex items-center pointer-events-none z-10 text-neutral-400 dark:text-neutral-500">
-              <Search size={16} strokeWidth={2} />
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center pointer-events-none z-10 text-neutral-400 dark:text-neutral-500">
+              <Search size={15} strokeWidth={2} />
             </div>
             <input
               type="text"
@@ -173,25 +173,25 @@ const Header = () => {
                 }
               }}
               suppressHydrationWarning
-              className="w-full h-[38px] bg-[#ebedf0] hover:bg-[#e4e6ea] focus:bg-white text-neutral-900 border-0 dark:bg-[#1e1e20] dark:hover:bg-[#252528] dark:focus:bg-[#222225] dark:text-white rounded-full pl-9 pr-9 text-[13px] placeholder:text-neutral-400 dark:placeholder:text-neutral-500 focus:outline-none transition-all font-normal shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
+              className="w-full h-[34px] bg-[#ebedf0] hover:bg-[#e4e6ea] focus:bg-white text-neutral-900 border-0 dark:bg-[#1e1e20] dark:hover:bg-[#252528] dark:focus:bg-[#222225] dark:text-white rounded-full pl-8 pr-8 text-[13px] placeholder:text-neutral-400 dark:placeholder:text-neutral-500 focus:outline-none transition-all font-normal shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
             />
             {query && (
               <button
                 onClick={handleClear}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-800 dark:hover:text-white transition-colors p-0.5 rounded-full hover:bg-black/5 dark:hover:bg-white/10"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-800 dark:hover:text-white transition-colors p-0.5 rounded-full hover:bg-black/5 dark:hover:bg-white/10"
                 title="清空"
               >
-                <X size={14} />
+                <X size={13} />
               </button>
             )}
           </div>
 
           <button
             onClick={() => setIsMobileMenuOpen(true)}
-            className="p-1 text-neutral-800 dark:text-neutral-200 hover:text-black dark:hover:text-white active:scale-90 transition shrink-0"
+            className="w-8 h-8 rounded-full flex items-center justify-center text-neutral-800 dark:text-neutral-200 hover:text-black dark:hover:text-white active:scale-90 transition shrink-0"
             aria-label="菜单"
           >
-            <Menu size={24} strokeWidth={1.8} />
+            <Menu size={20} strokeWidth={1.9} />
           </button>
         </div>
       )}

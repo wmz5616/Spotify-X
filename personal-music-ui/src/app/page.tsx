@@ -89,7 +89,7 @@ const HomePage = async () => {
       className="relative min-h-screen pt-0 sm:pt-4 pb-28 sm:pb-32"
     >
 
-      <div className="relative z-10 px-1 sm:px-4 md:px-6">
+      <div className="relative z-10 px-0.5 sm:px-4 md:px-6">
         {/* 移动端横向分类胶囊栏 (对标截图：推荐、刷歌、视频...) */}
         <MobileCategoryPills />
 

@@ -17,7 +17,7 @@ export default function MobileCategoryPills() {
   ];
 
   return (
-    <div className="md:hidden flex items-center justify-between w-full -mt-1.5 pt-0 pb-2 px-0.5 mb-2 select-none">
+    <div className="md:hidden flex items-center justify-between w-full -mt-1 pt-0 pb-2 px-0.5 mb-1.5 select-none">
       {categories.map((cat) => (
         <Link
           key={cat.label}
@@ -25,13 +25,13 @@ export default function MobileCategoryPills() {
           className={clsx(
             "flex-1 relative flex flex-col items-center justify-center transition-all duration-200 active:scale-95 py-0.5",
             cat.isCurrent
-              ? "text-neutral-950 dark:text-white font-bold text-[15px]"
-              : "text-neutral-500 hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-neutral-200 font-medium text-sm"
+              ? "text-neutral-950 dark:text-white font-bold text-[14px]"
+              : "text-neutral-500 hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-neutral-200 font-medium text-[13px]"
           )}
         >
           <span>{cat.label}</span>
           {cat.isCurrent && (
-            <span className="absolute -bottom-1 w-4 h-[3px] rounded-full bg-[#1ed760] transition-all" />
+            <span className="absolute -bottom-1 w-3.5 h-[2.5px] rounded-full bg-[#1ed760] transition-all" />
           )}
         </Link>
       ))}

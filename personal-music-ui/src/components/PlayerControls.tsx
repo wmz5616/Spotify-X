@@ -442,8 +442,8 @@ const PlayerControls = () => {
         <div
           onClick={toggleFullScreen}
           className={cn(
-            "md:hidden fixed left-3 right-3 z-40 h-[52px] bg-white/95 text-neutral-900 shadow-[0_4px_16px_rgba(0,0,0,0.06)] dark:bg-[#18181a]/95 dark:text-white dark:shadow-[0_8px_28px_rgba(0,0,0,0.7)] backdrop-blur-xl rounded-full pl-2.5 pr-3.5 flex items-center justify-between active:scale-[0.99] transition-all cursor-pointer select-none",
-            isDetailPage ? "bottom-3" : "bottom-[66px]"
+            "md:hidden fixed left-3 right-3 z-40 h-[46px] bg-white/95 text-neutral-900 shadow-[0_4px_14px_rgba(0,0,0,0.06)] dark:bg-[#18181a]/95 dark:text-white dark:shadow-[0_8px_24px_rgba(0,0,0,0.7)] backdrop-blur-xl rounded-full pl-2 pr-2.5 flex items-center justify-between active:scale-[0.99] transition-all cursor-pointer select-none",
+            isDetailPage ? "bottom-2.5" : "bottom-[60px]"
           )}
         >
           {/* 椭圆形边缘实时顺序流动的绿色进度条 */}
@@ -454,8 +454,8 @@ const PlayerControls = () => {
           />
 
           {/* 左侧：封面与歌曲信息 */}
-          <div className="flex items-center gap-2.5 min-w-0 flex-1 mr-2 relative z-10">
-            <div className="relative w-9 h-9 rounded-full overflow-hidden flex-shrink-0 border border-black/5 dark:border-white/15 bg-neutral-200 dark:bg-neutral-800 shadow-sm">
+          <div className="flex items-center gap-2 min-w-0 flex-1 mr-2 relative z-10">
+            <div className="relative w-8 h-8 rounded-full overflow-hidden flex-shrink-0 border border-black/5 dark:border-white/15 bg-neutral-200 dark:bg-neutral-800 shadow-xs">
               <Image
                 src={albumArtUrl}
                 alt={currentSong.title}
@@ -466,26 +466,26 @@ const PlayerControls = () => {
             </div>
 
             <div className="min-w-0 flex-1">
-              <p className="text-xs font-semibold text-neutral-900 dark:text-white truncate">
+              <p className="text-[12px] font-semibold text-neutral-900 dark:text-white truncate leading-tight">
                 {cleanSongTitle(currentSong.title, currentSong.artist || albumData?.artists)}
               </p>
-              <p className="text-[10px] text-neutral-500 dark:text-neutral-400 truncate mt-0.5">
+              <p className="text-[10px] text-neutral-500 dark:text-neutral-400 truncate mt-0.5 leading-tight">
                 {currentSong.artist || "未知歌手"}
               </p>
             </div>
           </div>
 
           {/* 右侧：播放/暂停控制与列表入口 */}
-          <div className="flex items-center gap-1.5 flex-shrink-0 relative z-10" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center gap-1 flex-shrink-0 relative z-10" onClick={(e) => e.stopPropagation()}>
             <button
               onClick={togglePlayPause}
-              className="w-8 h-8 rounded-full bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 flex items-center justify-center transition-transform active:scale-90 shadow-sm"
+              className="w-7 h-7 rounded-full bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 flex items-center justify-center transition-transform active:scale-90 shadow-xs"
               aria-label={isPlaying ? "暂停" : "播放"}
             >
               {isPlaying ? (
-                <Pause size={13} className="text-white dark:text-neutral-900 fill-white dark:fill-neutral-900" />
+                <Pause size={11} className="text-white dark:text-neutral-900 fill-white dark:fill-neutral-900" />
               ) : (
-                <Play size={13} className="text-white dark:text-neutral-900 fill-white dark:fill-neutral-900 translate-x-[0.5px]" />
+                <Play size={11} className="text-white dark:text-neutral-900 fill-white dark:fill-neutral-900 translate-x-[0.5px]" />
               )}
             </button>
 
@@ -494,10 +494,10 @@ const PlayerControls = () => {
                 setShowQueue(!showQueue);
                 if (showLyrics) setShowLyrics(false);
               }}
-              className="w-8 h-8 rounded-full flex items-center justify-center text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white transition-colors active:scale-90"
+              className="w-7 h-7 rounded-full flex items-center justify-center text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white transition-colors active:scale-90"
               aria-label="播放队列"
             >
-              <ListMusic size={17} />
+              <ListMusic size={15} />
             </button>
           </div>
         </div>

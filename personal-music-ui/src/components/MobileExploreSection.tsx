@@ -65,24 +65,24 @@ export default function MobileExploreSection({
   };
 
   return (
-    <div className="md:hidden space-y-6 mb-8 select-none">
+    <div className="md:hidden space-y-5 mb-6 select-none">
       {/* 模块 1：精选歌单与专辑 (卡片横向滚动) */}
       {albums.length > 0 && (
         <section>
-          <div className="flex items-center justify-between mb-3 px-1">
-            <h3 className="text-base font-extrabold text-neutral-900 dark:text-white tracking-tight">
+          <div className="flex items-center justify-between mb-2.5 px-0.5">
+            <h3 className="text-[15px] font-extrabold text-neutral-900 dark:text-white tracking-tight">
               精选专辑 · 值得一听
             </h3>
             <Link
               href="/playlists"
-              className="text-xs text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 flex items-center gap-0.5"
+              className="text-[11px] text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 flex items-center gap-0.5"
             >
               <span>更多</span>
-              <ChevronRight size={14} />
+              <ChevronRight size={13} />
             </Link>
           </div>
 
-          <div className="flex gap-3.5 overflow-x-auto no-scrollbar px-1 pb-1 -mx-1">
+          <div className="flex gap-2.5 overflow-x-auto no-scrollbar px-0.5 pb-1 -mx-0.5">
             {albums.slice(0, 8).map((alb) => {
               const isCurrent = currentSong?.album?.id === alb.id;
               const isAlbumPlaying = isCurrent && isPlaying;
@@ -93,11 +93,11 @@ export default function MobileExploreSection({
               return (
                 <div
                   key={alb.id}
-                  className="shrink-0 w-[116px] flex flex-col group cursor-pointer"
+                  className="shrink-0 w-[104px] flex flex-col group cursor-pointer"
                 >
                   <Link href={`/album/${alb.id}`} className="block">
-                    {/* 封面 + 高级暗色磨砂播放角标 */}
-                    <div className="relative w-[116px] h-[116px] rounded-2xl overflow-hidden bg-neutral-100 dark:bg-neutral-800 shadow-sm border border-black/5 dark:border-white/10 group-active:scale-95 transition-transform">
+                    {/* 封面 + 精致暗色磨砂播放角标 */}
+                    <div className="relative w-[104px] h-[104px] rounded-xl overflow-hidden bg-neutral-100 dark:bg-neutral-800 shadow-sm border border-black/5 dark:border-white/10 group-active:scale-95 transition-transform">
                       <Image
                         src={coverUrl}
                         alt={alb.title}
@@ -107,22 +107,22 @@ export default function MobileExploreSection({
                       />
                       <button
                         onClick={(e) => handlePlayAlbum(alb, e)}
-                        className="absolute bottom-2 right-2 w-7 h-7 rounded-full bg-black/75 backdrop-blur-md text-white flex items-center justify-center shadow-sm active:scale-90 transition-transform cursor-pointer"
+                        className="absolute bottom-1.5 right-1.5 w-6 h-6 rounded-full bg-black/65 backdrop-blur-md text-white flex items-center justify-center shadow-sm active:scale-90 transition-transform cursor-pointer"
                         title="播放专辑"
                       >
                         {isAlbumPlaying ? (
-                          <Pause size={12} fill="white" />
+                          <Pause size={10} fill="white" />
                         ) : (
-                          <Play size={12} fill="white" className="translate-x-[0.5px]" />
+                          <Play size={10} fill="white" className="translate-x-[0.5px]" />
                         )}
                       </button>
                     </div>
 
                     {/* 标题 & 歌手 */}
-                    <h4 className="text-xs font-bold text-neutral-900 dark:text-white truncate mt-2 leading-tight">
+                    <h4 className="text-[12px] font-bold text-neutral-900 dark:text-white truncate mt-1.5 leading-snug">
                       {alb.title}
                     </h4>
-                    <p className="text-[11px] text-neutral-400 dark:text-neutral-500 truncate mt-0.5">
+                    <p className="text-[10px] text-neutral-400 dark:text-neutral-500 truncate mt-0.5 leading-tight">
                       {alb.artists?.[0]?.name || "精选热碟"}
                     </p>
                   </Link>
@@ -136,20 +136,20 @@ export default function MobileExploreSection({
       {/* 模块 2：人气音乐人 (圆头像横向滚动) */}
       {artistsList.length > 0 && (
         <section>
-          <div className="flex items-center justify-between mb-3 px-1">
-            <h3 className="text-base font-extrabold text-neutral-900 dark:text-white tracking-tight">
+          <div className="flex items-center justify-between mb-2.5 px-0.5">
+            <h3 className="text-[15px] font-extrabold text-neutral-900 dark:text-white tracking-tight">
               热门歌手 · 畅听代表作
             </h3>
             <Link
               href="/discover"
-              className="text-xs text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 flex items-center gap-0.5"
+              className="text-[11px] text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 flex items-center gap-0.5"
             >
               <span>发现</span>
-              <ChevronRight size={14} />
+              <ChevronRight size={13} />
             </Link>
           </div>
 
-          <div className="flex gap-4 overflow-x-auto no-scrollbar px-1 pb-1 -mx-1">
+          <div className="flex gap-3 overflow-x-auto no-scrollbar px-0.5 pb-1 -mx-0.5">
             {artistsList.map((artist) => {
               const avatar = artist.avatar
                 ? getAuthenticatedSrc(artist.avatar, 150)
@@ -159,9 +159,9 @@ export default function MobileExploreSection({
                 <Link
                   key={artist.name}
                   href={artist.id ? `/artist/${artist.id}` : `/search?q=${encodeURIComponent(artist.name)}`}
-                  className="shrink-0 flex flex-col items-center w-16 group active:scale-95 transition-transform"
+                  className="shrink-0 flex flex-col items-center w-[60px] group active:scale-95 transition-transform"
                 >
-                  <div className="relative w-14 h-14 rounded-full overflow-hidden bg-neutral-100 dark:bg-neutral-800 shadow-sm border border-black/5 dark:border-white/10 group-hover:ring-2 group-hover:ring-emerald-500/40 transition-all">
+                  <div className="relative w-[52px] h-[52px] rounded-full overflow-hidden bg-neutral-100 dark:bg-neutral-800 shadow-sm border border-black/5 dark:border-white/10 group-hover:ring-2 group-hover:ring-emerald-500/40 transition-all">
                     <Image
                       src={avatar}
                       alt={artist.name}
@@ -170,7 +170,7 @@ export default function MobileExploreSection({
                       unoptimized
                     />
                   </div>
-                  <span className="text-xs font-semibold text-neutral-800 dark:text-neutral-200 truncate mt-1.5 text-center w-full">
+                  <span className="text-[11px] font-semibold text-neutral-800 dark:text-neutral-200 truncate mt-1.5 text-center w-full leading-tight">
                     {artist.name}
                   </span>
                 </Link>

@@ -409,7 +409,7 @@ const MobileQQSongGroup = ({
   };
 
   return (
-    <div className="w-[85vw] max-w-[335px] shrink-0 snap-start flex flex-col gap-1 p-2.5 rounded-2xl bg-white dark:bg-white/[0.03] border border-neutral-200/80 dark:border-white/[0.06] shadow-[0_2px_10px_rgba(0,0,0,0.04)] dark:shadow-none">
+    <div className="w-[86vw] max-w-[330px] shrink-0 snap-start flex flex-col gap-0.5 p-2 rounded-2xl bg-white dark:bg-white/[0.03] border border-neutral-200/80 dark:border-white/[0.06] shadow-[0_2px_10px_rgba(0,0,0,0.04)] dark:shadow-none">
       {topSongs.map((song) => {
         const isCurrent = currentSong?.id === song.id;
         const isTrackPlaying = isCurrent && isPlaying;
@@ -424,11 +424,11 @@ const MobileQQSongGroup = ({
           <div
             key={song.id}
             onClick={(e) => handlePlaySong(song, e)}
-            className="flex items-center justify-between gap-2.5 py-1.5 px-1.5 rounded-xl active:bg-neutral-100 dark:active:bg-white/5 transition-colors cursor-pointer select-none group/row"
+            className="flex items-center justify-between gap-2 py-1.5 px-1.5 rounded-xl active:bg-neutral-100 dark:active:bg-white/5 transition-colors cursor-pointer select-none group/row"
           >
             <div className="flex items-center gap-2.5 min-w-0 flex-1">
               {/* 封面 */}
-              <div className="relative w-11 h-11 rounded-xl overflow-hidden shadow-sm shrink-0 bg-neutral-100 dark:bg-neutral-800 border border-black/5 dark:border-white/5">
+              <div className="relative w-10 h-10 rounded-lg overflow-hidden shadow-sm shrink-0 bg-neutral-100 dark:bg-neutral-800 border border-black/5 dark:border-white/5">
                 <Image
                   src={cover}
                   alt={song.title}
@@ -438,7 +438,7 @@ const MobileQQSongGroup = ({
                 />
                 {isTrackPlaying && (
                   <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                    <div className="flex items-end gap-0.5 h-3.5">
+                    <div className="flex items-end gap-0.5 h-3">
                       <span className="w-0.5 bg-emerald-400 rounded-full animate-bar-1" />
                       <span className="w-0.5 bg-emerald-400 rounded-full animate-bar-2" />
                       <span className="w-0.5 bg-emerald-400 rounded-full animate-bar-3" />
@@ -449,33 +449,33 @@ const MobileQQSongGroup = ({
 
               {/* 歌名与标签与歌手 */}
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5 overflow-hidden">
+                <div className="flex items-center gap-1 overflow-hidden">
                   <h4
-                    className={`text-xs sm:text-sm font-bold truncate transition-colors ${
+                    className={`text-[13px] sm:text-sm font-bold truncate leading-snug transition-colors ${
                       isCurrent ? "text-emerald-500" : "text-neutral-900 dark:text-white group-hover/row:text-emerald-500"
                     }`}
                   >
                     {cleanSongTitle(song.title, song.artist)}
                   </h4>
                   {song.tag && (
-                    <span className="shrink-0 text-[10px] text-neutral-500 dark:text-neutral-400 bg-white dark:bg-white/10 px-1.5 py-0.5 rounded border border-neutral-200/50 dark:border-white/5 font-normal scale-95">
+                    <span className="shrink-0 max-w-[78px] truncate text-[9px] leading-tight text-neutral-500 dark:text-neutral-400 bg-neutral-50 dark:bg-white/10 px-1 py-0.5 rounded border border-neutral-200/60 dark:border-white/5 font-normal">
                       {song.tag}
                     </span>
                   )}
                 </div>
-                <p className="text-[11px] text-neutral-500 dark:text-neutral-400 truncate mt-0.5">
+                <p className="text-[11px] text-neutral-500 dark:text-neutral-400 truncate mt-0.5 leading-tight">
                   {song.artist || chart.artists?.[0]?.name || "未知歌手"}
                 </p>
               </div>
             </div>
 
-            {/* 红心收藏按钮与真实单曲收藏量 (固定宽度并左对齐，确保红心图标垂直严格对齐) */}
+            {/* 红心收藏按钮与真实单曲收藏量 (固定紧凑宽度，留足歌名空间) */}
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 toggleFavoriteSong(song.id);
               }}
-              className={`flex items-center justify-start gap-1 text-xs shrink-0 w-[60px] px-1 py-1 active:scale-90 transition-all cursor-pointer ${
+              className={`flex items-center justify-start gap-1 text-xs shrink-0 w-[50px] px-0.5 py-1 active:scale-90 transition-all cursor-pointer ${
                 isFav
                   ? "text-rose-500 hover:text-rose-600"
                   : "text-neutral-400 hover:text-rose-500 dark:text-neutral-500 dark:hover:text-rose-400"
@@ -483,19 +483,19 @@ const MobileQQSongGroup = ({
               title={isFav ? "已收藏" : "收藏"}
             >
               <Heart
-                size={15}
+                size={13}
                 className={`shrink-0 ${isFav ? "fill-rose-500 text-rose-500" : "fill-none text-neutral-400"}`}
               />
               {song.favCount ? (
                 <span
-                  className={`text-[11px] font-mono tabular-nums leading-none whitespace-nowrap transition-colors ${
+                  className={`text-[10px] font-mono tabular-nums leading-none whitespace-nowrap transition-colors ${
                     isFav ? "text-rose-500 font-semibold" : "text-neutral-400 dark:text-neutral-400"
                   }`}
                 >
                   {song.favCount}
                 </span>
               ) : isFav ? (
-                <span className="text-[11px] font-mono tabular-nums leading-none whitespace-nowrap text-rose-500 font-semibold">
+                <span className="text-[10px] font-mono tabular-nums leading-none whitespace-nowrap text-rose-500 font-semibold">
                   已收藏
                 </span>
               ) : null}
@@ -524,28 +524,28 @@ const FeaturedChartsSection = ({
   };
 
   return (
-    <section id="featured-charts" className="mb-6 sm:mb-12">
+    <section id="featured-charts" className="mb-5 sm:mb-12">
       {/* 标题栏 (对标 QQ 音乐：听「精选热歌」的也在听 ▶ 更多 >) */}
-      <div className="flex items-center justify-between mb-2.5 sm:mb-5">
-        <div className="flex items-center gap-2">
-          <h2 className="text-base sm:text-2xl font-extrabold text-neutral-900 dark:text-white tracking-tight">
+      <div className="flex items-center justify-between gap-2 mb-2.5 sm:mb-5 px-0.5">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <h2 className="text-[15px] sm:text-2xl font-extrabold text-neutral-900 dark:text-white tracking-tight truncate">
             听「精选热歌」的也在听
           </h2>
           <button
             onClick={handlePlayAll}
-            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-neutral-100 hover:bg-neutral-200 dark:bg-white/10 dark:hover:bg-white/15 text-neutral-800 dark:text-neutral-200 active:scale-95 transition-all cursor-pointer border border-neutral-200/60 dark:border-white/10 text-[11px] font-semibold select-none shadow-sm"
+            className="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-neutral-100 hover:bg-neutral-200 dark:bg-white/10 dark:hover:bg-white/15 text-neutral-800 dark:text-neutral-200 active:scale-95 transition-all cursor-pointer border border-neutral-200/60 dark:border-white/10 text-[10px] font-semibold select-none shadow-xs"
             title="一键播放全部"
           >
-            <Play size={10} fill="#1ed760" className="text-[#1ed760] translate-x-[0.5px]" />
+            <Play size={9} fill="#1ed760" className="text-[#1ed760] translate-x-[0.5px]" />
             <span>播放</span>
           </button>
         </div>
         <Link
           href={hotChart ? `/album/${hotChart.id}` : "/playlists"}
-          className="text-xs text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 flex items-center gap-0.5"
+          className="shrink-0 text-[11px] sm:text-xs text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 flex items-center gap-0.5"
         >
           <span>更多</span>
-          <ChevronRight size={14} />
+          <ChevronRight size={13} />
         </Link>
       </div>
 
@@ -558,7 +558,7 @@ const FeaturedChartsSection = ({
       </div>
 
       {/* 移动端 3 行一组横向手势流 (完全对标 QQ 音乐原生歌曲流布局，展示 100% 真实收藏量) */}
-      <div className="md:hidden flex overflow-x-auto snap-x snap-mandatory gap-4 pb-2 -mx-1 px-1 scrollbar-none">
+      <div className="md:hidden flex overflow-x-auto snap-x snap-mandatory gap-2.5 pb-1.5 -mx-0.5 px-0.5 scrollbar-none">
         {hotChart && <MobileQQSongGroup chart={hotChart} />}
         {soarChart && <MobileQQSongGroup chart={soarChart} />}
         {billboardChart && <MobileQQSongGroup chart={billboardChart} />}

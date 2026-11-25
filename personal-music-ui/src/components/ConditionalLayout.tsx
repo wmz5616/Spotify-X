@@ -41,7 +41,7 @@ export default function ConditionalLayout({ children }: { children: React.ReactN
           )}
         >
           {!isVideoPage && (
-            <Suspense fallback={<div className="h-14 md:h-16" />}>
+            <Suspense fallback={<div className="h-12 md:h-16" />}>
               <Header />
             </Suspense>
           )}
@@ -50,8 +50,8 @@ export default function ConditionalLayout({ children }: { children: React.ReactN
               isVideoPage
                 ? "p-0 h-full w-full pb-0"
                 : isDetailPage
-                ? "p-0 sm:p-6 pb-24 md:pb-28"
-                : "p-3 sm:p-6 pb-36 md:pb-28"
+                ? "p-0 sm:p-6 pb-20 md:pb-28"
+                : "p-3 sm:p-6 pb-32 md:pb-28"
             }
           >
             {children}
